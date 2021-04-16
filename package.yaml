@@ -45,6 +45,7 @@ dependencies:
     - parsec
     - QuickCheck
     - comonad
+    - haskeline
 
 executables:
   open-games-exe:
