@@ -138,6 +138,24 @@ natureDrawsTypeStage name = [opengame|
     returns   :    ;
   |]
 
+-- Individual bidding stage
+biddingStage name = [opengame|
+
+    inputs    :  nameValuePair  ;
+    feedback  :   ;
+
+    :---------------------------:
+    inputs    :  nameValuePair  ;
+    feedback  :   ;
+    operation :  dependentDecision name (const [0,20..60]) ;
+    outputs   :  dec ;
+    returns   :  setPayoff nameValuePair payments  ;
+    :---------------------------:
+
+    outputs   :  dec ;
+    returns   :  payments  ;
+  |]
+
 -- Transforms the payments into a random reshuffling
 transformPayments kPrice kSlots noLotteries paymentFunction = [opengame|
 
@@ -191,21 +209,21 @@ bidding3 kPrice kSlots noLotteries paymentFunction = [opengame|
 
    inputs    :  aliceValue    ;
    feedback  :      ;
-   operation :  dependentDecision "Alice" (const [0,20..60]) ;
+   operation :  biddingStage "Alice" ;
    outputs   :  aliceDec ;
-   returns   :  setPayoff aliceValue payments  ;
+   returns   :  payments  ;
 
    inputs    :  bobValue    ;
    feedback  :      ;
-   operation :  dependentDecision "Bob" (const [0,20..60]) ;
+   operation :  biddingStage "Bob" ;
    outputs   :  bobDec ;
-   returns   :  setPayoff bobValue payments  ;
+   returns   :  payments  ;
 
    inputs    :  carolValue    ;
    feedback  :      ;
-   operation :  dependentDecision "Carol" (const [0,20..60]) ;
+   operation :  biddingStage "Carol" ;
    outputs   :  carolDec ;
-   returns   :  setPayoff carolValue payments  ;
+   returns   :  payments  ;
 
    inputs    :  [("Alice",aliceDec),("Bob",bobDec),("Carol",carolDec)]  ;
    feedback  :      ;
