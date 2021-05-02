@@ -40,6 +40,7 @@ type Values = Double
 
 values = [20,30,60]
 
+reservePrice :: Double
 reservePrice = 1
 
 ----------------------
@@ -54,27 +55,40 @@ kMaxBid :: Int -> [(String, Values)] ->  Values
 kMaxBid k ls = snd $  orderAllocation ls !! (k-1)
 
 -- k- price auction rule, i.e. the sequence for winning bidders is ignored, winners always pay k-highest price
-setPaymentKMax :: Values -> Values -> Int -> Int -> Int -> [(String,Values,Bool)] -> [(String, Values)]
-setPaymentKMax _        _    _         _             _               []                     = []
-setPaymentKMax resPrice kmax noLottery counterWinner lotteriesGiven ((name,bid,winner):ls)  =
+noLotteryPayment :: Values -> Values -> Int -> Int -> Int -> [(String,Values,Bool)] -> [(String, Values)]
+noLotteryPayment _        _    _         _             _               []                     = []
+noLotteryPayment resPrice kmax noLottery counterWinner lotteriesGiven ((name,bid,winner):ls)  =
    if winner
-      then (name,kmax) : setPaymentKMax resPrice kmax noLottery counterWinner lotteriesGiven ls
+      then (name,kmax) : noLotteryPayment resPrice kmax noLottery counterWinner lotteriesGiven ls
       else
-           if noLottery > lotteriesGiven then (name,resPrice) : setPaymentKMax resPrice kmax noLottery (counterWinner + 1) (lotteriesGiven + 1) ls
-                                         else (name,0) : setPaymentKMax resPrice kmax noLottery (counterWinner + 1) lotteriesGiven ls
+           if noLottery > lotteriesGiven then (name,resPrice) : noLotteryPayment resPrice kmax noLottery (counterWinner + 1) (lotteriesGiven + 1) ls
+                                         else (name,0) : noLotteryPayment resPrice kmax noLottery (counterWinner + 1) lotteriesGiven ls
 
 -- Determine payments for winners; for lottery winners, and for those who do not get a good set it to 0
-setPayment :: Values -> Values -> Int -> Int -> Int -> [(String,Values,Bool)] -> [(String, Values)]
-setPayment _        _    _         _             _               []                     = []
-setPayment resPrice kmax noLottery counterWinner lotteriesGiven ((name,bid,winner):ls)  =
+lotteryPayment :: Values -> Values -> Int -> Int -> Int -> [(String,Values,Bool)] -> [(String, Values)]
+lotteryPayment _        _    _         _             _               []                     = []
+lotteryPayment resPrice kmax noLottery counterWinner lotteriesGiven ((name,bid,winner):ls)  =
    if winner
       then
-           if counterWinner < noLottery then (name,resPrice) : setPayment resPrice kmax noLottery counterWinner lotteriesGiven ls
-                                        else (name,kmax) : setPayment resPrice kmax noLottery counterWinner lotteriesGiven ls
+           if counterWinner < noLottery then (name,resPrice) : lotteryPayment resPrice kmax noLottery counterWinner lotteriesGiven ls
+                                        else (name,kmax) : lotteryPayment resPrice kmax noLottery counterWinner lotteriesGiven ls
       else
-           if noLottery > lotteriesGiven then (name,resPrice) : setPayment resPrice kmax noLottery (counterWinner + 1) (lotteriesGiven + 1) ls
-                                         else (name,0) : setPayment resPrice kmax noLottery (counterWinner + 1) lotteriesGiven ls
+           if noLottery > lotteriesGiven then (name,resPrice) : lotteryPayment resPrice kmax noLottery (counterWinner + 1) (lotteriesGiven + 1) ls
+                                         else (name,0) : lotteryPayment resPrice kmax noLottery (counterWinner + 1) lotteriesGiven ls
 
+
+-- Determine payments for winners; for lottery winners, and for those who do not get a good set it to 0
+lotteryPayment2 :: Values -> Values -> Int -> Int -> Int -> [(String,Values,Bool)] -> [(String, Values)]
+lotteryPayment2 _        _    _         _             _               []                     = []
+lotteryPayment2 resPrice kmax noLottery counterWinner lotteriesGiven ((name,bid,winner):ls)  =
+   if winner
+      then
+           if counterWinner < noLottery then (name,resPrice) : lotteryPayment2 resPrice kmax noLottery counterWinner lotteriesGiven ls
+                                        else (name,pay) : lotteryPayment2 resPrice kmax noLottery counterWinner lotteriesGiven ls
+      else
+           if noLottery > lotteriesGiven then (name,resPrice) : lotteryPayment2 resPrice kmax noLottery (counterWinner + 1) (lotteriesGiven + 1) ls
+                                         else (name,0) : lotteryPayment2 resPrice kmax noLottery (counterWinner + 1) lotteriesGiven ls
+   where pay = kmax  - (fromIntegral noLottery) / 2 * (kmax - reservePrice)
 
 -- Mark the auctionWinners 
 auctionWinner :: Values -> [(String, Values)] -> [(String, Values,Bool)]
@@ -260,36 +274,36 @@ stratBidderThreshold' = Kleisli (\(_,x) -> case () of
 
 
 -- Complete strategy for truthful bidding for 3 players
-truthfulStrat3 ::
+truthfulStrat ::
   List
     '[Kleisli Stochastic (String, Values) Values,
       Kleisli Stochastic (String, Values) Values,
       Kleisli Stochastic (String, Values) Values]
-truthfulStrat3 =
+truthfulStrat =
   stratBidderTruth
   ::- stratBidderTruth
   ::- stratBidderTruth
   ::- Nil
 
 -- Complete strategy for threshold bidding 3 players
-thresholdStrat3 ::
+thresholdStrat ::
   List
     '[Kleisli Stochastic (String, Values) Values,
       Kleisli Stochastic (String, Values) Values,
       Kleisli Stochastic (String, Values) Values]
-thresholdStrat3 =
+thresholdStrat =
   stratBidderThreshold
   ::- stratBidderThreshold
   ::- stratBidderThreshold
   ::- Nil
 
 -- Complete strategy for threshold' bidding 3 players
-thresholdStrat3' ::
+thresholdStrat' ::
   List
     '[Kleisli Stochastic (String, Values) Values,
       Kleisli Stochastic (String, Values) Values,
       Kleisli Stochastic (String, Values) Values]
-thresholdStrat3' =
+thresholdStrat' =
   stratBidderThreshold'
   ::- stratBidderThreshold'
   ::- stratBidderThreshold'
@@ -298,15 +312,7 @@ thresholdStrat3' =
 ---------------
 -- 1 Equilibria
 -- 1.0 Eq. game with 3 players
-equilibriumGame3 kPrice kSlots noLotteries strat = evaluate (bidding3 kPrice kSlots noLotteries setPayment) strat void
-
-
----------------
--- 2 Equilibria
--- follows k-price auction
--- 2.0 Eq. game with 3 players
-equilibriumGame3KMax kPrice kSlots noLotteries strat = evaluate (bidding3 kPrice kSlots noLotteries setPaymentKMax) strat void
-
+equilibriumGame kPrice kSlots noLotteries paymentFunction strat = evaluate (bidding3 kPrice kSlots noLotteries paymentFunction) strat void
 
 
 ------------------------
@@ -314,19 +320,25 @@ equilibriumGame3KMax kPrice kSlots noLotteries strat = evaluate (bidding3 kPrice
 
 
 -- 3 players with 1 auction slot, 2nd highest price, and 1 lottery slot - truthful bidding - not an eq
--- generateIsEq $ equilibriumGame3 2 1 1 truthfulStrat3
+-- generateIsEq $ equilibriumGame 2 1 1 lotteryPayment truthfulStrat
+
+-- 3 players with 1 auction slot, 2nd highest price, and 1 lottery slot with modified payment - truthful bidding - eq
+-- generateIsEq $ equilibriumGame 2 1 1 lotteryPayment2 truthfulStrat
 
 -- 3 players with 1 auction slot, 2nd highest price is paid, and 1 lottery slot - threshold bidding - is an eq
--- generateIsEq $ equilibriumGame3 2 1 1 thresholdStrat3
+-- generateIsEq $ equilibriumGame 2 1 1 lotteryPayment thresholdStrat
 
 -- 3 players with 1 auction slot and 1 lottery slot AND 2nd price rule - strategies before not an equilibrium
--- generateIsEq $ equilibriumGame3KMax 2 1 1 thresholdStrat3
+-- generateIsEq $ equilibriumGame 2 1 1 noLotteryPayment thresholdStrat
 
 -- Truthful bidding is also not an equilibrium
--- generateIsEq $ equilibriumGame3KMax 2 1 1 truthfulStrat3
+-- generateIsEq $ equilibriumGame 2 1 1 noLotteryPayment truthfulStrat
 
 -- But the alternative threshold strategy is an equilibrium
--- generateIsEq $ equilibriumGame3KMax 2 1 1 thresholdStrat3'
+-- generateIsEq $ equilibriumGame 2 1 1 noLotteryPayment thresholdStrat'
+
+-- Also note: Once we exclude slots via lottery, and just auction off one slot, truthful bidding becomes an equilibrium
+-- generateIsEq $ equilibriumGame 2 1 0 noLotteryPayment truthfulStrat
 
 
 
