@@ -15,6 +15,8 @@ module Examples.TimingGames.TimingGame where
 -- TODO Do we need more attesters to make that model relevant?
 -- TODO What is the payoff for the sender?
 
+
+-- NEXT Check strategies and explore game
 -- DONE We need a stochastic process which delays the signal with some prob, simply correct or delayed after 4 with small prob
 -- DONE the payoff needs to come from the future if the block is contained
 -- 
