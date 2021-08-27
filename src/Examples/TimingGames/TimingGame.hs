@@ -9,7 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.TimingGames.TimingGame where 
+module Examples.TimingGames.TimingGame where
 
 
 -- TODO Do we need more attesters to make that model relevant?
@@ -17,9 +17,6 @@ module Examples.TimingGames.TimingGame where
 
 
 -- NEXT Check strategies and explore game
--- DONE We need a stochastic process which delays the signal with some prob, simply correct or delayed after 4 with small prob
--- DONE the payoff needs to come from the future if the block is contained
--- 
 
 {--
 
@@ -92,7 +89,7 @@ attestHash mempty  _         = mempty
 attestHash _       (HashBlock x)  = x
 attestHash _       Empty     = mempty
 
--- Given a previousString 
+-- Given a previousString and the timer, produce a newString at t=0 and keep the old one instead
 createRandomString :: Int -> String -> Stochastic String
 createRandomString 0 str = do
   r <- uniformDist ["abc","def","ghi"]
@@ -106,6 +103,8 @@ transformTicker x  = x + 1
 
 -- Has the attester correctly verified the hash?
 -- TODO Not clear exactly what "correct" means. Correct in the sense of the protocol I guess.
+-- Needs to be updated
+-- We could also replace it with a probabilistic process for now -- that would mirror some other players acting with some prob
 attestedCorrect hashOld hashNew = isInfixOf hashOld hashNew
 
 
@@ -116,6 +115,7 @@ delaySendTime actualTimer delayedTimer
   | delayedTimer == 5 = playDeterministically delayedTimer
   | otherwise         = playDeterministically actualTimer
 
+-- given timers send old message or new message
 delayMessage :: (Int, Int, String, String) -> String
 delayMessage (actualTimer, delayedTimer, oldMessage, newMessage)
   | actualTimer < delayedTimer = oldMessage
@@ -133,74 +133,6 @@ attesterPayoff successFee verified = if verified then successFee else 0
 
 ---------------------
 -- 1 Game blocks
--- A proposer observes the ticker and decides to send the block or not
--- If the block is sent, the exogenous block is sent, otherwise the empty string
--- There is a delayed built in, determined at t=0. If true the new message is not sent but the old message is.
-proposer  payoffProposer = [opengame|
-
-    inputs    : ticker, delayedTicker, hashOld ;
-    feedback  :   ;
-
-    :-----:
-    inputs    : ticker, hashOld ;
-    feedback  :   ;
-    operation : hashGenerator ;
-    outputs   : proposedHash;
-    returns   : ;
-
-
-    inputs    : ticker ;
-    feedback  :   ;
-    operation : dependentDecision "proposer" (const [Send,DoNotSend]) ;
-    outputs   : sent ;
-    returns   : payoffProposer sent ticker;
-    // ^ decision whether to send the correct message or not
-
-    inputs    : hashOld, proposedHash, sent ;
-    feedback  :   ;
-    operation : forwardFunction $ uncurry3 sendHash ;
-    outputs   : hashNew ;
-    returns   : ;
-    // ^ if the proposer decided to send the message, update block, else keep the old block
-
-    inputs    : ticker, delayedTicker ;
-    feedback  :   ;
-    operation : forwardFunction $ uncurry delaySendTime ;
-    outputs   : delayedTickerUpdate ;
-    returns   : ;
-    // ^ determines whether message is delayed or not
-
-    inputs    : ticker, delayedTicker, hashOld, hashNew ;
-    feedback  :   ;
-    operation : forwardFunction $ delayMessage ;
-    outputs   : messageSent ;
-    returns   : ;
-    // ^ if correct message is sent update block
-
-    :-----:
-
-    outputs   : messageSent, delayedTickerUpdate ;
-    returns   :      ;
-  |]
-
--- The attester observes the sent hash, observes the timer, and can then decide whether to send the hash or not
-attester payoffAttester = [opengame|
-
-    inputs    : ticker,hash ;
-    feedback  :   ;
-
-    :-----:
-    inputs    : ticker, hash ;
-    feedback  :   ;
-    operation : dependentDecision "attester" (\(ticker, hash) -> [HashBlock hash,Empty]) ;
-    outputs   : attested ;
-    returns   : payoffAttester correctAttestedNew ;
-
-    :-----:
-
-    outputs   : attested ;
-    returns   : correctAttestedNew  ;
-  |]
 
 -- Generate hash given previous information
 hashGenerator = [opengame|
@@ -223,7 +155,78 @@ hashGenerator = [opengame|
 
 
 
-  
+-- A proposer observes the ticker and decides to send the block or not
+-- If the decision is to send, the exogenous block is sent, otherwise the empty string
+-- There is a delay built in, determined at t=0. If true, the new message is not sent but the old message is until the delay if over.
+proposer  payoffProposer = [opengame|
+
+    inputs    : ticker, delayedTicker, hashOld ;
+    feedback  :   ;
+
+    :-----:
+    inputs    : ticker, hashOld ;
+    feedback  :   ;
+    operation : hashGenerator ;
+    outputs   : proposedHash;
+    returns   : ;
+    // ^ creates new hash at t=0
+
+    inputs    : ticker ;
+    feedback  :   ;
+    operation : dependentDecision "proposer" (const [Send,DoNotSend]) ;
+    outputs   : sent ;
+    returns   : payoffProposer sent ticker;
+    // ^ decision whether to send a message or not
+
+    inputs    : hashOld, proposedHash, sent ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry3 sendHash ;
+    outputs   : hashNew ;
+    returns   : ;
+    // ^ if the proposer decided to send the message, update the block, else keep the old block
+
+    inputs    : ticker, delayedTicker ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry delaySendTime ;
+    outputs   : delayedTickerUpdate ;
+    returns   : ;
+    // ^ determines whether message is delayed or not
+
+    inputs    : ticker, delayedTicker, hashOld, hashNew ;
+    feedback  :   ;
+    operation : forwardFunction $ delayMessage ;
+    outputs   : messageSent ;
+    returns   : ;
+    // ^ for a given timer, determines whether the block is sent or not
+
+    :-----:
+
+    outputs   : messageSent, delayedTickerUpdate ;
+    returns   :      ;
+  |]
+
+-- The attester observes the sent hash, the old hash, the timer, and can then decide whether to send the latest hash or not
+attester payoffAttester = [opengame|
+
+    inputs    : ticker,hashNew,hashOld ;
+    feedback  :   ;
+
+    :-----:
+    inputs    : ticker,hashNew,hashOld ;
+    feedback  :   ;
+    operation : dependentDecision "attester" (\(ticker, hashNew, hashOld) -> [hashNew,hashOld]) ;
+    outputs   : attested ;
+    returns   : payoffAttester correctAttestedNew ;
+    // ^ the attester either can send the newHash or the oldHash
+    // ^ NOTE the payoff for the attester comes from the next period
+    // ^ This needs to be carefully modelled
+    // ^ Could make sense to make sense to model this in period
+    :-----:
+
+    outputs   : attested ;
+    returns   : correctAttestedNew  ;
+  |]
+
 -------------------
 -- 2 Complete games
 -------------------
@@ -231,28 +234,30 @@ hashGenerator = [opengame|
 -- One round game
 oneRound payoffProposer payoffAttester = [opengame|
 
-    inputs    : ticker, delayedTicker, blockHash, attesterHash ;
+    inputs    : ticker, delayedTicker, hashOld, attesterHash ;
     feedback  : correctAttested  ;
 
     :-----:
-    inputs    : ticker,delayedTicker,blockHash ;
+    inputs    : ticker,delayedTicker,hashOld ;
     feedback  :   ;
     operation : proposer payoffProposer ;
     outputs   : hashNew, delayedTickerUpdate ;
     returns   : ;
+
+    inputs    : ticker, hashNew, hashOld ;
+    feedback  :   ;
+    operation : attester payoffAttester ;
+    outputs   : attested ;
+    returns   : correctAttestedNew;
 
     inputs    : attesterHash, hashNew ;
     feedback  :   ;
     operation : forwardFunction $ uncurry attestedCorrect ;
     outputs   : correctAttested ;
     returns   : ;
-    // ^ this block needs to change, currently completely deterministic in the detection
-
-    inputs    : ticker, hashNew ;
-    feedback  :   ;
-    operation : attester payoffAttester ;
-    outputs   : attested ;
-    returns   : correctAttestedNew;
+    // ^ This determines the payoff for the attester before
+    // ^ Negative payoff for the attester, if the proposed hash has elements that where not reported by the attester before
+    // ^ TODO this block needs to change, currently completely deterministic in the detection
 
     :-----:
 
