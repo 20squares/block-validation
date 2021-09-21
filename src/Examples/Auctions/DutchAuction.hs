@@ -20,8 +20,8 @@ import Examples.Auctions.AuctionSupportFunctions
 import           Control.Monad.State  hiding (state,void)
 import qualified Control.Monad.State  as ST
 
--- Create super-game including a tick-repeated version
--- 
+-- TODO Create super-game including a tick-repeated version
+--
 
 ----------
 -- A Model
@@ -291,4 +291,4 @@ repeatedCompleteGameEq iterator strat initialAction = evaluate biddingGameComple
 eqOutput iterator strat initialAction = generateIsEq $ repeatedCompleteGameEq iterator strat initialAction
 
 
-
+-- eqOutput 1 strategyTuple (10,20,20,Wait)

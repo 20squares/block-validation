@@ -12,7 +12,7 @@
 module Examples.TimingGames.TimingGame where
 
 
--- TODO Do we need more attesters to make that model relevant?
+-- DONE Do we need more attesters to make that model relevant?
 -- TODO What is the payoff for the sender?
 
 
