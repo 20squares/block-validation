@@ -12,11 +12,10 @@
 module Examples.TimingGames.TimingGame where
 
 
+-- TODO This game is an example of a Markov structure where we need to initialize the past Bool value
 -- DONE Do we need more attesters to make that model relevant?
--- TODO What is the payoff for the sender?
-
-
--- NEXT Check strategies and explore game
+-- DONE What is the payoff for the sender?
+-- DONE Check strategies and explore game
 
 {--
 
@@ -265,12 +264,12 @@ oneRound reward fee = [opengame|
     // ^ This determines the correctness for the proposer
     :-----:
 
-    outputs   : attested, delayedTickerUpdate ;
+    outputs   : attested, hashNew, delayedTickerUpdate ;
     returns   : correctAttestedNew ;
   |]
 
 -- Repeated game
-repeatedGame payoffProposer payoffAttester = [opengame|
+repeatedGame reward fee = [opengame|
 
     inputs    : ticker,delayedTicker, blockHash, attesterHash ;
     feedback  : correctAttestedOld  ;
@@ -278,8 +277,8 @@ repeatedGame payoffProposer payoffAttester = [opengame|
     :-----:
     inputs    : ticker,delayedTicker, blockHash, attesterHash ;
     feedback  : correctAttestedOld  ;
-    operation : oneRound payoffProposer payoffAttester ;
-    outputs   : attested, delayedTickerUpdate ;
+    operation : oneRound reward fee ;
+    outputs   : attested, hashNew, delayedTickerUpdate ;
     returns   : correctAttestedNew ;
 
     inputs    : ticker;
@@ -291,17 +290,71 @@ repeatedGame payoffProposer payoffAttester = [opengame|
 
     :-----:
 
-    outputs   : tickerNew, delayedTickerUpdate, attested ;
+    outputs   : tickerNew, delayedTickerUpdate, attested, hashNew ;
     returns   : correctAttestedNew         ;
   |]
+
+
+----------------
+-- Continuations
+-- extract continuation
+extractContinuation :: StochasticStatefulOptic (Int, Int, String, [Char]) Bool (Int, Stochastic Int, String, [Char]) Bool
+                    -> (Int, Int, String, [Char])
+                    -> Bool
+                    -> StateT Vector Stochastic Bool
+extractContinuation (StochasticStatefulOptic v u) x boolValue = do
+  (z,a) <- ST.lift (v x)
+  u z boolValue
+
+-- extract next state (action)
+extractNextState :: StochasticStatefulOptic (Int, Int, String, [Char]) Bool (Int, Stochastic Int, String, [Char]) Bool
+                 -> (Int, Int, String, [Char])
+                 -> Stochastic (Int, Stochastic Int, String, [Char])
+extractNextState (StochasticStatefulOptic v _) x = do
+  (z,a) <- v x
+  pure a
+
+
+-- determine continuation for iterator, with the same repeated strategy
+determineContinuationPayoffs 1        strat action = pure ()
+determineContinuationPayoffs iterator strat action = do
+   extractContinuation executeStrat action
+   nextInput <- ST.lift $ extractNextState executeStrat action
+   determineContinuationPayoffs (pred iterator) strat nextInput
+ where executeStrat =  play (repeatedGame 2 2) strat
+
+
+executeStrat strat =  play (repeatedGame 2 2) strat
+
+-- fix context used for the evaluation
+--contextCont iterator strat initialAction = StochasticStatefulContext (pure ((),initialAction)) (\_ action -> determineContinuationPayoffs iterator strat action)
 
 
 -----------
 -- Analysis
 
+--
+strategyProposer :: Kleisli Stochastic Int Send
+strategyProposer = pureAction Send
+
+strategyAttester :: Kleisli Stochastic (Int, String, String) String
+strategyAttester = Kleisli (\(_, newHash, _) -> pure newHash)
+
+strategyTuple = strategyProposer ::- strategyAttester ::- Nil
+
+strategyProposer' :: Kleisli Stochastic Int Send
+strategyProposer' = pureAction DoNotSend
+
+strategyAttester' :: Kleisli Stochastic (Int, String, String) String
+strategyAttester' = Kleisli (\(_, newHash, _) -> pure "")
+
+
+strategyTuple' = strategyProposer' ::- strategyAttester' ::- Nil
+
+
 -- Start with the situation of one attester and one proposer
+initialState = (0,0,"a","")
 
+contextFixed =  StochasticStatefulContext (pure ((),initialState)) (\_ _ -> pure False)
 
--- contextFixed = StochasticContext (pure ((),initialAction)) (\_ action -> continuationPayoffs iterator strat action (0,0))
-
-eq strat context = generateIsEq $ evaluate (oneRound 2 2) strat context
+eq strat = generateIsEq $ evaluate (oneRound 2 2) strat contextFixed
