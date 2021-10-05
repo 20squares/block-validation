@@ -101,10 +101,7 @@ transformTicker :: Int -> Int
 transformTicker 12 = 0
 transformTicker x  = x + 1
 
--- Has the attester correctly verified the hash?
--- TODO Not clear exactly what "correct" means. Correct in the sense of the protocol I guess.
--- Needs to be updated
--- We could also replace it with a probabilistic process for now -- that would mirror some other players acting with some prob
+
 attestedCorrect hashOld hashNew = isInfixOf hashOld hashNew
 
 
@@ -129,12 +126,13 @@ delayMessage (actualTimer, delayedTimer, oldMessage, newMessage)
 -- otherwise.
 attesterPayoff successFee verified = if verified then successFee else 0
 
-
+proposerPayoff reward verified  = if verified then reward else 0
 
 ---------------------
 -- 1 Game blocks
 
 -- Generate hash given previous information
+-- At time t=0 a new string is generated; otherwise the same old string is still used
 hashGenerator = [opengame|
 
     inputs    : ticker, hash ;
@@ -158,7 +156,7 @@ hashGenerator = [opengame|
 -- A proposer observes the ticker and decides to send the block or not
 -- If the decision is to send, the exogenous block is sent, otherwise the empty string
 -- There is a delay built in, determined at t=0. If true, the new message is not sent but the old message is until the delay if over.
-proposer  payoffProposer = [opengame|
+proposer  reward = [opengame|
 
     inputs    : ticker, delayedTicker, hashOld ;
     feedback  :   ;
@@ -175,7 +173,7 @@ proposer  payoffProposer = [opengame|
     feedback  :   ;
     operation : dependentDecision "proposer" (const [Send,DoNotSend]) ;
     outputs   : sent ;
-    returns   : payoffProposer sent ticker;
+    returns   : proposerPayoff reward correctSent;
     // ^ decision whether to send a message or not
 
     inputs    : hashOld, proposedHash, sent ;
@@ -202,11 +200,11 @@ proposer  payoffProposer = [opengame|
     :-----:
 
     outputs   : messageSent, delayedTickerUpdate ;
-    returns   :      ;
+    returns   : correctSent     ;
   |]
 
 -- The attester observes the sent hash, the old hash, the timer, and can then decide whether to send the latest hash or not
-attester payoffAttester = [opengame|
+attester fee = [opengame|
 
     inputs    : ticker,hashNew,hashOld ;
     feedback  :   ;
@@ -216,7 +214,7 @@ attester payoffAttester = [opengame|
     feedback  :   ;
     operation : dependentDecision "attester" (\(ticker, hashNew, hashOld) -> [hashNew,hashOld]) ;
     outputs   : attested ;
-    returns   : payoffAttester correctAttestedNew ;
+    returns   : attesterPayoff fee correctAttestedNew ;
     // ^ the attester either can send the newHash or the oldHash
     // ^ NOTE the payoff for the attester comes from the next period
     // ^ This needs to be carefully modelled
@@ -232,7 +230,7 @@ attester payoffAttester = [opengame|
 -------------------
 
 -- One round game
-oneRound payoffProposer payoffAttester = [opengame|
+oneRound reward fee = [opengame|
 
     inputs    : ticker, delayedTicker, hashOld, attesterHash ;
     feedback  : correctAttested  ;
@@ -240,13 +238,13 @@ oneRound payoffProposer payoffAttester = [opengame|
     :-----:
     inputs    : ticker,delayedTicker,hashOld ;
     feedback  :   ;
-    operation : proposer payoffProposer ;
+    operation : proposer reward ;
     outputs   : hashNew, delayedTickerUpdate ;
-    returns   : ;
+    returns   : correctSent;
 
     inputs    : ticker, hashNew, hashOld ;
     feedback  :   ;
-    operation : attester payoffAttester ;
+    operation : attester fee ;
     outputs   : attested ;
     returns   : correctAttestedNew;
 
@@ -259,6 +257,12 @@ oneRound payoffProposer payoffAttester = [opengame|
     // ^ Negative payoff for the attester, if the proposed hash has elements that where not reported by the attester before
     // ^ TODO this block needs to change, currently completely deterministic in the detection
 
+    inputs    : attesterHash, hashNew ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry attestedCorrect ;
+    outputs   : correctSent ;
+    returns   : ;
+    // ^ This determines the correctness for the proposer
     :-----:
 
     outputs   : attested, delayedTickerUpdate ;
@@ -291,3 +295,13 @@ repeatedGame payoffProposer payoffAttester = [opengame|
     returns   : correctAttestedNew         ;
   |]
 
+
+-----------
+-- Analysis
+
+-- Start with the situation of one attester and one proposer
+
+
+-- contextFixed = StochasticContext (pure ((),initialAction)) (\_ action -> continuationPayoffs iterator strat action (0,0))
+
+eq strat context = generateIsEq $ evaluate (oneRound 2 2) strat context
