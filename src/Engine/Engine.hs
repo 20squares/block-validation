@@ -19,6 +19,7 @@ module Engine.Engine
   , pureAction
   , playDeterministically
   , discount
+  , addPayoffs
   , DiagnosticInfoBayesian(..)
   , generateOutput
   , generateIsEq
