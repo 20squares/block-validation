@@ -11,8 +11,10 @@
 
 module Examples.TimingGames.TimingGame2 where
 
-
--- TODO Can we remodel this game as to use the state hack as well?
+-- TODO Test that the payoff version actually works
+-- TODO Testing of equilibrium
+-- TODO Check the initial state conditions make sense
+-- DONE Can we remodel this game as to use the state hack as well?
 -- DONE Do we need more attesters to make that model relevant?
 -- DONE What is the payoff for the sender?
 -- DONE Check strategies and explore game
@@ -419,7 +421,7 @@ determineContinuationPayoffs iterator strat action = do
 executeStrat strat =  play (repeatedGame 2 2) strat
 
 -- fix context used for the evaluation
---contextCont iterator strat initialAction = StochasticStatefulContext (pure ((),initialAction)) (\_ action -> determineContinuationPayoffs iterator strat action)
+contextCont iterator strat initialAction = StochasticStatefulContext (pure ((),initialAction)) (\_ action -> determineContinuationPayoffs iterator strat action)
 
 
 -----------
@@ -449,4 +451,6 @@ initialState = (0,0,"a","")
 
 contextFixed =  StochasticStatefulContext (pure ((),initialState)) (\_ _ -> pure ())
 
-eq strat context = generateIsEq $ evaluate (repeatedGame 2 2) strat contextFixed
+eq iterator strat = generateIsEq $ evaluate (repeatedGame 2 2) strat (contextCont iterator strat initialState)
+
+showOutput iterator strat = generateOutput $ evaluate (repeatedGame 2 2) strat (contextCont iterator strat initialState)
