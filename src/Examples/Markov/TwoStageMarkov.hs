@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Examples.Markov.TwoStageMarkov where 
+module Examples.Markov.TwoStageMarkov where
 
 import           Data.Tuple.Extra (uncurry3)
 import           Engine.Engine
@@ -17,7 +17,6 @@ import qualified Control.Monad.State  as ST
 import Numeric.Probability.Distribution hiding (map, lift, filter)
 
 
--- TODO: Add stage game with proper backtransitioning 
 
 
 --------
@@ -63,9 +62,9 @@ transitionEndState :: EndState -> ActionPD -> ActionPD -> Stochastic EndState
 transitionEndState True _ _ = playDeterministically True
 transitionEndState False Defect _ = uniform [True,False]
 transitionEndState False _      Defect = uniform [True,False]
-transitionEndState False Cooperate Cooperate = playDeterministically False 
+transitionEndState False Cooperate Cooperate = playDeterministically False
 
--- The transition happens with 0.5 probability if one of the actions is defect
+-- The transition happens deterministically if one of the player does not play _Cooperate_ and then we stay there
 transitionEndStateDeterm :: EndState -> ActionPD -> ActionPD -> Stochastic EndState
 transitionEndStateDeterm True  _         _         = playDeterministically True
 transitionEndStateDeterm False Cooperate Cooperate = playDeterministically False
@@ -113,6 +112,9 @@ prisonersDilemma = [opengame|
    returns   :      ;
   |]
 
+
+-- Start game with payoff only depending on current state
+-- NOTE: an alternative implementation is possible; check _NStageMarkov_
 startGame :: OpenGame
                 StochasticStatefulOptic
                 StochasticStatefulContext
@@ -150,7 +152,7 @@ startGame = [opengame|
    returns   :      ;
   |]
 
-  
+
 -- absorbing state
 -- only one action and therefore deterministic payoffGame
 endState = [opengame|
@@ -179,34 +181,6 @@ endState = [opengame|
   |]
 
 
--- absorbing state
--- only one action and therefore deterministic payoffGame
-endState2 = [opengame|
-
-   inputs    : gameState ;
-   feedback  :  ;
-
-   :----------------------------:
-   inputs    : ;
-   feedback  :      ;
-   operation : dependentDecision "player1" (const [Defect,Defect]);
-   outputs   : decisionPlayer1 ;
-   returns   : payoffGame gameState;
-
-   inputs    :   ;
-   feedback  :      ;
-   operation : dependentDecision "player2" (const [Defect,Defect]);
-   outputs   : decisionPlayer2 ;
-   returns   : payoffGame gameState ;
-
-
-   :----------------------------:
-
-   outputs   :  ;
-   returns   :  ;
-  |]
-
-  
 -- define a proper stage game, here MeetingInNY, where we end up
 endStateGame = [opengame|
 
@@ -238,6 +212,7 @@ endStateGame = [opengame|
 -- Complete Games
 
 -- define the whole game, here with pathological endgame
+-- payoffs only depend on state
 completeGame2 = [opengame|
 
    inputs    : (dec1Old,dec2Old,gameStateOld) ;
@@ -252,7 +227,7 @@ completeGame2 = [opengame|
 
    inputs    :  gameStateOld ;
    feedback  :      ;
-   operation : endState2 ;
+   operation : endState ;
    outputs   : ;
    returns   : ;
 
@@ -274,9 +249,6 @@ completeGame2 = [opengame|
    outputs   :  (dec1New,dec2New,gameStateNew)  ;
    returns   :         ;
   |]
-
--------------------------------
--- payoffs only depend on state
 
  -- define the whole game, here with pathological endgame
 completeGame = [opengame|
@@ -316,12 +288,9 @@ completeGame = [opengame|
    returns   :         ;
   |]
 
- 
 
-------------------------
 -- with a proper subgame
-  
--- define the whole game, 
+-- define the whole game
 completeGameMNY = [opengame|
 
    inputs    : (dec1Old,dec2Old,gameStateOld) ;
@@ -363,13 +332,18 @@ completeGameMNY = [opengame|
 -------------
 -- Strategies
 
--- Add strategy for stage game 
+-- Strategy for PD stage game
 stageStrategy :: Kleisli Stochastic (ActionPD, ActionPD) ActionPD
 stageStrategy = Kleisli $
    (\case
        (Cooperate,Cooperate) -> playDeterministically Cooperate
        (_,_)         -> playDeterministically Defect)
 
+-- Strategy for game with state only dependent payoff
+stageStrategyStateDep :: Kleisli Stochastic (ActionPD, ActionPD) ActionPD
+stageStrategyStateDep = Kleisli $ const $ playDeterministically Cooperate
+
+-- Random strategy for single stage
 stageStrategyRandom :: Kleisli Stochastic (ActionPD,ActionPD) ActionPD
 stageStrategyRandom = Kleisli $ const $  uniform [Cooperate,Defect]
 
@@ -383,6 +357,9 @@ endStageStrategyMNY = Kleisli $ const $ playDeterministically EmpireState
 
 -- Strategy tuple for complete game
 strategyTuple = stageStrategy ::- stageStrategy ::- endStageStrategy ::- endStageStrategy ::-  Nil
+
+-- Strategy tuple for complete state-dependent payoff game
+strategyTupleStateDep = stageStrategyStateDep ::- stageStrategyStateDep ::- endStageStrategy ::- endStageStrategy ::-  Nil
 
 -- Strategy tuple for complete game with randomization in first stage
 strategyTupleRandom = stageStrategyRandom ::- stageStrategyRandom ::- endStageStrategy ::- endStageStrategy ::-  Nil
@@ -482,9 +459,8 @@ repeatedCompleteGameMNYEq iterator strat initialAction = evaluate completeGameMN
 -- Show output pathological end game
 eqOutput iterator strat initialAction = generateIsEq $ repeatedCompleteGameEq iterator strat initialAction
 
--- Show output pathological end game
+-- Show output end state
 eqOutput2 iterator strat initialAction = generateIsEq $ repeatedCompleteGameEq2 iterator strat initialAction
 
 -- Show output meeting in NY end game
 eqOutputMYN iterator strat initialAction = generateIsEq $ repeatedCompleteGameMNYEq iterator strat initialAction
-

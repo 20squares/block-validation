@@ -151,6 +151,6 @@ discount name f = OpenGame {
 addPayoffs :: String -> StochasticStatefulBayesianOpenGame '[] '[] Double () () ()
 addPayoffs name = OpenGame {
   play = \_ -> let v x = return (x, ())
-                   u value () = modify (adjust (\x -> x + value) name)
+                   u value () = modify (adjustOrAdd (\x -> x + value) value name)
                  in StochasticStatefulOptic v u,
   evaluate = \_ _ -> Nil}
