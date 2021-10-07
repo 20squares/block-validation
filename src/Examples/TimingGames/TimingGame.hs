@@ -314,7 +314,7 @@ extractNextState (StochasticStatefulOptic v _) x = do
   (z,a) <- v x
   pure a
 
-
+{--
 -- determine continuation for iterator, with the same repeated strategy
 determineContinuationPayoffs 1        strat action = pure ()
 determineContinuationPayoffs iterator strat action = do
@@ -322,7 +322,7 @@ determineContinuationPayoffs iterator strat action = do
    nextInput <- ST.lift $ extractNextState executeStrat action
    determineContinuationPayoffs (pred iterator) strat nextInput
  where executeStrat =  play (repeatedGame 2 2) strat
-
+-}
 
 executeStrat strat =  play (repeatedGame 2 2) strat
 
