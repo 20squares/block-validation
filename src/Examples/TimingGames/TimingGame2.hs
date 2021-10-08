@@ -11,9 +11,12 @@
 
 module Examples.TimingGames.TimingGame2 where
 
--- TODO Test that the payoff version actually works
--- TODO Testing of equilibrium
--- TODO Check the initial state conditions make sense
+
+-- TODO Implement the renumeration of the proposer for later periods
+-- TODO Currently, the proposer is also not affected by not proposing something; only the attester suffers
+-- DONE Check the initial state conditions make sense
+-- DONE Test that the payoff version actually works
+-- DONE Testing of equilibrium
 -- DONE Can we remodel this game as to use the state hack as well?
 -- DONE Do we need more attesters to make that model relevant?
 -- DONE What is the payoff for the sender?
@@ -85,11 +88,6 @@ sendHash oldHash newHash DoNotSend = oldHash
 sendHash oldHash newHash Send      = newHash
 
 
-attestHash :: String -> View String -> String
-attestHash mempty  _         = mempty
-attestHash _       (HashBlock x)  = x
-attestHash _       Empty     = mempty
-
 -- Given a previousString and the timer, produce a newString at t=0 and keep the old one instead
 createRandomString :: Int -> String -> Stochastic String
 createRandomString 0 str = do
@@ -103,7 +101,7 @@ transformTicker 12 = 0
 transformTicker x  = x + 1
 
 
-attestedCorrect hashOld hashNew = isInfixOf hashOld hashNew
+attestedCorrect hashOld hashNew = isSuffixOf hashOld hashNew
 
 
 -- draw from a timer which determines whether the message is delayed
@@ -220,7 +218,6 @@ attester fee = [opengame|
     // ^ the attester either can send the newHash or the oldHash
     // ^ NOTE the payoff for the attester comes from the next period
     // ^ This needs to be carefully modelled
-    // ^ Could make sense to make sense to model this in period
     :-----:
 
     outputs   : attested ;
@@ -326,8 +323,6 @@ oneRound reward fee = [opengame|
     outputs   : correctAttested ;
     returns   : ;
     // ^ This determines the payoff for the attester before
-    // ^ Negative payoff for the attester, if the proposed hash has elements that where not reported by the attester before
-    // ^ TODO this block needs to change, currently completely deterministic in the detection
 
     inputs    : correctAttested ;
     feedback  :   ;
@@ -431,26 +426,73 @@ contextCont iterator strat initialAction = StochasticStatefulContext (pure ((),i
 strategyProposer :: Kleisli Stochastic Int Send
 strategyProposer = pureAction Send
 
-strategyAttester :: Kleisli Stochastic (Int, String, String) String
-strategyAttester = Kleisli (\(_, newHash, _) -> pure newHash)
-
-strategyTuple = strategyProposer ::- strategyAttester ::- Nil
-
 strategyProposer' :: Kleisli Stochastic Int Send
 strategyProposer' = pureAction DoNotSend
 
+strategyAttester :: Kleisli Stochastic (Int, String, String) String
+strategyAttester = Kleisli (\(_, newHash, _) -> pure newHash)
+
 strategyAttester' :: Kleisli Stochastic (Int, String, String) String
-strategyAttester' = Kleisli (\(_, newHash, _) -> pure "")
+strategyAttester' = Kleisli (\(_, _, oldHash) -> pure oldHash)
+
+strategyAttester'' :: Kleisli Stochastic (Int, String, String) String
+strategyAttester'' = Kleisli (\(_, newHash, oldHash) -> uniformDist [newHash,oldHash])
 
 
-strategyTuple' = strategyProposer' ::- strategyAttester' ::- Nil
 
+strategyTuple = strategyProposer ::- strategyAttester ::- Nil
 
+strategyTuple2 = strategyProposer' ::- strategyAttester' ::- Nil
+
+strategyTuple3 = strategyProposer' ::- strategyAttester ::- Nil
+
+strategyTuple4 = strategyProposer ::- strategyAttester' ::- Nil
+
+strategyTuple5 = strategyProposer' ::- strategyAttester'' ::- Nil
+
+strategyTuple6 = strategyProposer ::- strategyAttester'' ::- Nil
 -- Start with the situation of one attester and one proposer
 initialState = (0,0,"a","")
 
 contextFixed =  StochasticStatefulContext (pure ((),initialState)) (\_ _ -> pure ())
 
-eq iterator strat = generateIsEq $ evaluate (repeatedGame 2 2) strat (contextCont iterator strat initialState)
+eq iterator strat initialState = generateIsEq $ evaluate (repeatedGame 2 2) strat (contextCont iterator strat initialState)
 
-showOutput iterator strat = generateOutput $ evaluate (repeatedGame 2 2) strat (contextCont iterator strat initialState)
+showOutput iterator strat initialState = generateOutput $ evaluate (repeatedGame 2 2) strat (contextCont iterator strat initialState)
+
+-------------------
+-- Scenarios Tested
+
+{-
+-- NOTE Both players truthtelling is also an equilibrium
+eq 2 strategyTuple (1,0,"a","")
+eq 2 strategyTuple (0,0,"a","")
+-- Also is an equilibrium if the initial values are the same
+eq 2 strategyTuple (1,0,"a","a")
+eq 2 strategyTuple (0,0,"a","a")
+
+
+
+-- NOTE this is a scenario where both players coordinate against the true value; but the strategy of the attester is irrelevant here as he only sees the same information
+eq 2 strategyTuple2 (1,0,"a","")
+eq 2 strategyTuple2 (0,0,"a","")
+-- Also is an equilibrium if the initial values are the same
+eq 2 strategyTuple2 (1,0,"a","a")
+eq 2 strategyTuple2 (0,0,"a","a")
+
+-- NOTE proposer not telling the truth but attester is, is also an equilibrium. Makes sense as the attester can only attest what is there
+eq 2 strategyTuple3 (1,0,"a","")
+eq 2 strategyTuple3 (0,0,"a","")
+-- Also is an equilibrium if the initial values are the same
+eq 2 strategyTuple3 (1,0,"a","a")
+eq 2 strategyTuple3 (0,0,"a","a")
+
+-- NOTE proposer telling the truth but attester is not, is _not_ an equilibrium.
+eq 2 strategyTuple4 (0,0,"a","")
+-- Also is an equilibrium if the initial values are the same
+eq 2 strategyTuple4 (0,0,"a","a")
+
+-- NOTE the behavior above depends on the state!
+eq 2 strategyTuple4 (1,0,"a","")
+eq 2 strategyTuple4 (1,0,"a","a")
+-}
