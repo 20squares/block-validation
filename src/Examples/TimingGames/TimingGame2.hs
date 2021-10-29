@@ -472,7 +472,6 @@ eq 2 strategyTuple (1,0,"a","a")
 eq 2 strategyTuple (0,0,"a","a")
 
 
-
 -- NOTE this is a scenario where both players coordinate against the true value; but the strategy of the attester is irrelevant here as he only sees the same information
 eq 2 strategyTuple2 (1,0,"a","")
 eq 2 strategyTuple2 (0,0,"a","")
