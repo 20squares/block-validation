@@ -191,18 +191,21 @@ oneRound  = [parseTree|
     feedback  :   ;
 
     :-----:
+    label     : proposerReward ;
     inputs    : ticker,delayedTicker,hashOld ;
     feedback  :   ;
     operation : proposer reward ;
     outputs   : hashNew, delayedTickerUpdate ;
     returns   : ;
 
+    label     : attesterFee ;
     inputs    : ticker, hashNew, hashOld ;
     feedback  :   ;
     operation : attester fee ;
     outputs   : attested ;
     returns   : ;
 
+    label     : correctedAttested ;
     inputs    : attesterHash, hashNew ;
     feedback  :   ;
     operation : forwardFunction $ uncurry attestedCorrect ;
@@ -210,6 +213,7 @@ oneRound  = [parseTree|
     returns   : ;
     // ^ This determines the payoff for the attester before
 
+    label     : updatePayoffAttester ;
     inputs    : correctAttested ;
     feedback  :   ;
     operation : updatePayoffAttester fee ;
@@ -217,7 +221,7 @@ oneRound  = [parseTree|
     returns   : ;
     // ^ Updates the payoff of the attester from the period before
 
-
+    label     : correctSent ;
     inputs    : attesterHash, hashNew ;
     feedback  :   ;
     operation : forwardFunction $ uncurry attestedCorrect ;
@@ -225,6 +229,7 @@ oneRound  = [parseTree|
     returns   : ;
     // ^ This determines the correctness for the proposer
 
+    label     : updatePayoffProposer ;
     inputs    : correctSent ;
     feedback  :   ;
     operation : updatePayoffProposer reward;
