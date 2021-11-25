@@ -36,6 +36,7 @@ hashGenerator = [parseTree|
     feedback  :   ;
 
     :-----:
+    label     : hashGenerator ;
     inputs    : ticker, hash ;
     feedback  :   ;
     operation : liftStochasticForward $ uncurry createRandomString ;
@@ -59,6 +60,7 @@ proposer   = [parseTree|
     feedback  :   ;
 
     :-----:
+    label     : newHashProposed ;
     inputs    : ticker, hashOld ;
     feedback  :   ;
     operation : hashGenerator ;
@@ -66,6 +68,7 @@ proposer   = [parseTree|
     returns   : ;
     // ^ creates new hash at t=0
 
+    label     : decisionProposer ;
     inputs    : ticker ;
     feedback  :   ;
     operation : dependentDecision "proposer" (const [Send,DoNotSend]) ;
@@ -74,6 +77,7 @@ proposer   = [parseTree|
     // ^ decision whether to send a message or not
     // ^ fix reward to zero; is update where it is evaluated as correct or false
 
+    label     : sendHash ;
     inputs    : hashOld, proposedHash, sent ;
     feedback  :   ;
     operation : forwardFunction $ uncurry3 sendHash ;
@@ -81,6 +85,7 @@ proposer   = [parseTree|
     returns   : ;
     // ^ if the proposer decided to send the message, update the block, else keep the old block
 
+    label     : delaySendTime ;
     inputs    : ticker, delayedTicker ;
     feedback  :   ;
     operation : forwardFunction $ uncurry delaySendTime ;
@@ -88,6 +93,7 @@ proposer   = [parseTree|
     returns   : ;
     // ^ determines whether message is delayed or not
 
+    label     : delayMessage ;
     inputs    : ticker, delayedTicker, hashOld, hashNew ;
     feedback  :   ;
     operation : forwardFunction $ delayMessage ;
@@ -108,6 +114,7 @@ attester  = [parseTree|
     feedback  :  ;
 
     :-----:
+    label     : attesterDecision ;
     inputs    : ticker,hashNew,hashOld ;
     feedback  :   ;
     operation : dependentDecision "attester" (\(ticker, hashNew, hashOld) -> [hashNew,hashOld]) ;
@@ -130,6 +137,7 @@ updatePayoffAttester   = [parseTree|
     feedback  :   ;
 
     :-----:
+    label     : attesterReward ;
     inputs    : bool ;
     feedback  :   ;
     operation : forwardFunction $ attesterPayoff fee ;
@@ -137,7 +145,7 @@ updatePayoffAttester   = [parseTree|
     returns   : ;
     // ^ Determines the value
 
-
+    label     : addPayoffsAttester ;
     inputs    : value ;
     feedback  :   ;
     operation : addPayoffs "attester" ;
@@ -156,6 +164,7 @@ updatePayoffProposer    = [parseTree|
     feedback  :   ;
 
     :-----:
+    label     : proposerReward ;
     inputs    : bool ;
     feedback  :   ;
     operation : forwardFunction $ proposerPayoff reward ;
@@ -163,7 +172,7 @@ updatePayoffProposer    = [parseTree|
     returns   : ;
     // ^ Determines the value
 
-
+    label     : addPayoffsProposer ;
     inputs    : value ;
     feedback  :   ;
     operation : addPayoffs "proposer" ;
@@ -252,12 +261,14 @@ repeatedGame  = [parseTree|
     feedback  :   ;
 
     :-----:
+    label     : oneRoundGame ;
     inputs    : ticker,delayedTicker, blockHash, attesterHash ;
     feedback  : correctAttestedOld  ;
     operation : oneRound reward fee ;
     outputs   : attested, hashNew, delayedTickerUpdate ;
     returns   :  ;
 
+    label     : transformTicker ;
     inputs    : ticker;
     feedback  :   ;
     operation : forwardFunction transformTicker ;
