@@ -63,6 +63,7 @@ dependencies:
     - lens
     - typed-process
 
+
 executables:
   open-games-exe:
     main:                Main.hs
@@ -80,6 +81,8 @@ executables:
       - open-games-hs
       - graphviz
       - template-haskell
+      - path
+      - path-io
 
 benchmarks:
   learning-bench:

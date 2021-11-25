@@ -15,7 +15,8 @@ import System.Process.Typed
 import Data.GraphViz
 import Data.GraphViz.Attributes.Complete
 import Data.GraphViz.Commands.IO
-
+import           Path
+import qualified Path.IO as IO
 
 customParams :: GraphvizParams n String Gfx.ArrowType () String
 customParams = let rec = quickParams :: GraphvizParams n String Gfx.ArrowType () String in
@@ -282,38 +283,55 @@ repeatedGame  = [parseTree|
     returns   :  ;
   |]
 
+-------------------
+-- Path information
+
+
+outputP = [reldir|output|]
+
+hashGeneratorP = [relfile|hashGenerator|]
+proposerP      = [relfile|proposer|]
+attesterP      = [relfile|attester|]
+updatePayoffAttesterP = [relfile|updatePayoffAttester|]
+updatePayoffProposerP = [relfile|updatePayoffProposer|]
+oneRoundP             = [relfile|oneRound|]
+repeatedGameP         = [relfile|repeatedGame|]
 
 
 main :: IO ()
 main = do
-  writeDotFile "hashGenerator" (graphToDot customParams (convertBlock hashGenerator))
-  writeDotFile "proposer" (graphToDot customParams (convertBlock proposer))
-  writeDotFile "attester" (graphToDot customParams (convertBlock attester))
-  writeDotFile "updatePayoffAttester" (graphToDot customParams (convertBlock updatePayoffAttester))
-  writeDotFile "updatePayoffProposer" (graphToDot customParams (convertBlock updatePayoffProposer))
-  writeDotFile "oneRound" (graphToDot customParams (convertBlock oneRound))
-  writeDotFile "repeatedGame" (graphToDot customParams (convertBlock repeatedGame))
+  writeDotFile (toFilePath $ outputP </> hashGeneratorP) (graphToDot customParams (convertBlock hashGenerator))
+  writeDotFile (toFilePath $ outputP </> proposerP) (graphToDot customParams (convertBlock proposer))
+  writeDotFile (toFilePath $ outputP </> attesterP) (graphToDot customParams (convertBlock attester))
+  writeDotFile (toFilePath $ outputP </> updatePayoffAttesterP) (graphToDot customParams (convertBlock updatePayoffAttester))
+  writeDotFile (toFilePath $ outputP </> updatePayoffProposerP) (graphToDot customParams (convertBlock updatePayoffProposer))
+  writeDotFile (toFilePath $ outputP </> oneRoundP) (graphToDot customParams (convertBlock oneRound))
+  writeDotFile (toFilePath $ outputP </> repeatedGameP) (graphToDot customParams (convertBlock repeatedGame))
   runProcess_
       (shell
-          ( "dot -Tsvg hashGenerator > hashGenerator.svg ")
+          ( "dot -Tsvg " ++ (toFilePath $  outputP </> hashGeneratorP) ++ " > " ++ (toFilePath $  outputP </> hashGeneratorP) ++ ".svg")
           )
   runProcess_
       (shell
-          ( "dot -Tsvg proposer > proposer.svg ")
+          ( "dot -Tsvg " ++ (toFilePath $  outputP </> proposerP) ++ " > " ++ (toFilePath $  outputP </> proposerP) ++ ".svg")
           )
   runProcess_
       (shell
-          ( "dot -Tsvg attester > attester.svg ")
+          ("dot -Tsvg " ++ (toFilePath $  outputP </> attesterP) ++ " > " ++ (toFilePath $  outputP </> attesterP) ++ ".svg")
           )
   runProcess_
       (shell
-          ( "dot -Tsvg updatePayoffAttester > updatePayoffAttester.svg ")
+          ("dot -Tsvg " ++ (toFilePath $  outputP </> updatePayoffAttesterP) ++ " > " ++ (toFilePath $  outputP </> updatePayoffAttesterP) ++ ".svg")
           )
   runProcess_
       (shell
-          ( "dot -Tsvg updatePayoffProposer > updatePayoffProposer.svg ")
+          ("dot -Tsvg " ++ (toFilePath $  outputP </> updatePayoffProposerP) ++ " > " ++ (toFilePath $  outputP </> updatePayoffProposerP) ++ ".svg")
           )
   runProcess_
       (shell
-          ( "dot -Tsvg repeatedGame > repeatedGame.svg ")
+          ("dot -Tsvg " ++ (toFilePath $  outputP </> oneRoundP) ++ " > " ++ (toFilePath $  outputP </> oneRoundP) ++ ".svg")
+          )
+  runProcess_
+      (shell
+          ("dot -Tsvg " ++ (toFilePath $  outputP </> repeatedGameP) ++ " > " ++ (toFilePath $  outputP </> repeatedGameP) ++ ".svg")
           )
