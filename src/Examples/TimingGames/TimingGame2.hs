@@ -47,7 +47,8 @@ Propagation times follow some distribution F
 : with probability F(t), a message sent is received after delay t. Although the protocol dictates sending the vote after 4 seconds, there is a weak incentive to wait a little longer in case B is delayed for some reason and is received in time for B′ to build on it, albeit too late for attesters who voted at t=4 to have seen it.-}
 
 
-
+-------------------------------------------------------------------------------------
+-- This game is using the State implementation in order to "send" payoffs at distance
 
 
 
@@ -310,26 +311,28 @@ oneRound reward fee = [opengame|
     operation : proposer reward ;
     outputs   : hashNew, delayedTickerUpdate ;
     returns   : ;
+    // ^ Proposer makes a decision
 
     inputs    : ticker, hashNew, hashOld ;
     feedback  :   ;
     operation : attester fee ;
     outputs   : attested ;
     returns   : ;
+    // ^ Attester makes a decision
 
     inputs    : attesterHash, hashNew ;
     feedback  :   ;
     operation : forwardFunction $ uncurry attestedCorrect ;
     outputs   : correctAttested ;
     returns   : ;
-    // ^ This determines the payoff for the attester before
+    // ^ This determines whether the attester was correct in period (t-1)
 
     inputs    : correctAttested ;
     feedback  :   ;
     operation : updatePayoffAttester fee ;
     outputs   : ;
     returns   : ;
-    // ^ Updates the payoff of the attester from the period before
+    // ^ Updates the payoff of the attester given decision in period (t-1)
 
 
     inputs    : attesterHash, hashNew ;
@@ -337,16 +340,14 @@ oneRound reward fee = [opengame|
     operation : forwardFunction $ uncurry attestedCorrect ;
     outputs   : correctSent ;
     returns   : ;
-    // ^ This determines the correctness for the proposer
+    // ^ This determines whether the attester was correct in period (t-1)
 
     inputs    : correctSent ;
     feedback  :   ;
     operation : updatePayoffProposer reward;
     outputs   : ;
     returns   : ;
-    // ^ Updates the payoff of the proposer from the period before
-
-
+    // ^ Updates the payoff of the proposer given decision in period (t-1)
 
     :-----:
 
