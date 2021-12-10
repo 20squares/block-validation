@@ -11,9 +11,11 @@
 
 module Examples.TimingGames.TimingGame2 where
 
--- TODO Can we implement two games in parallel which get put together again?
--- TODO Implement the renumeration of the proposer for later periods
--- TODO Currently, the proposer is also not affected by not proposing something; only the attester suffers
+-- TODO Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step
+-- TODO The renumeration of all players needs to be taken properly into account
+-- TODO Implement a hard-coded two stage version as well
+-- TODO Implement the renumeration of the proposer for later periods - now that is clear how it works in principle
+-- DONE Currently, the proposer is also not affected by not proposing something; only the attester suffers
 -- DONE Check the initial state conditions make sense
 -- DONE Test that the payoff version actually works
 -- DONE Testing of equilibrium
@@ -145,14 +147,16 @@ sendHash :: String -> String -> Send -> String
 sendHash oldHash newHash DoNotSend = oldHash
 sendHash oldHash newHash Send      = newHash
 
+-- Given the timer, produce a newString at t=0 and keep the old one instead
+createRandomString :: Int -> Stochastic String
+createRandomString 0 = uniformDist ["a","b"]
+createRandomString _ = playDeterministically mempty
 
--- Given a previousString and the timer, produce a newString at t=0 and keep the old one instead
-createRandomString :: Int -> String -> Stochastic String
-createRandomString 0 str = do
-  r <- uniformDist ["abc","def","ghi"]
-  pure (r ++ str)
-createRandomString _ str = playDeterministically str
 
+
+-- Given a previousString and the timer, produce a newString
+addString :: String -> Int -> String -> String
+addString str index new = new ++ drop index str
 
 transformTicker :: Int -> Int
 transformTicker 12 = 0
@@ -194,22 +198,22 @@ proposerPayoff reward verified  = if verified then reward else 0
 
 -- Generate hash given previous information
 -- At time t=0 a new string is generated; otherwise the same old string is still used
-hashGenerator = [opengame|
+addHash = [opengame|
 
-    inputs    : ticker, hash ;
+    inputs    : listHashes, sent, newProposedBlock  ;
     feedback  :   ;
 
     :-----:
-    inputs    : ticker, hash ;
+    inputs    : listHashes, sent, newProposedBlock ;
     feedback  :   ;
-    operation : liftStochasticForward $ uncurry createRandomString ;
-    outputs   : newString ;
+    operation : forwardFunction $ uncurry3 addString ;
+    outputs   : newListHashes ;
     returns   : ;
 
     :-----:
 
-    outputs   : newString ;
-    returns   :           ;
+    outputs   : newListHashes ;
+    returns   :               ;
   |]
 
 
@@ -219,31 +223,25 @@ hashGenerator = [opengame|
 -- There is a delay built in, determined at t=0. If true, the new message is not sent but the old message is until the delay if over.
 proposer  reward = [opengame|
 
-    inputs    : ticker, delayedTicker, hashOld ;
+    inputs    : ticker, delayedTicker, listHashes, newProposedBlock;
     feedback  :   ;
 
     :-----:
-    inputs    : ticker, hashOld ;
+    inputs    : ticker, listHashes ;
     feedback  :   ;
-    operation : hashGenerator ;
+    operation : dependentDecision "proposer" (\(t,listHashes) -> [0,length listHashes]) ;
+    outputs   : sent ;
+    returns   : 0;
+    // ^ decision which hash to send forward (latest element, or second latest element etc.)
+    // ^ fix reward to zero; it is later updated where it is evaluated as correct or false
+
+    inputs    : listHashes, sent, newProposedBlock ;
+    feedback  :   ;
+    operation : addHash ;
     outputs   : proposedHash;
     returns   : ;
     // ^ creates new hash at t=0
 
-    inputs    : ticker ;
-    feedback  :   ;
-    operation : dependentDecision "proposer" (const [Send,DoNotSend]) ;
-    outputs   : sent ;
-    returns   : 0;
-    // ^ decision whether to send a message or not
-    // ^ fix reward to zero; it is later updated where it is evaluated as correct or false
-
-    inputs    : hashOld, proposedHash, sent ;
-    feedback  :   ;
-    operation : forwardFunction $ uncurry3 sendHash ;
-    outputs   : hashNew ;
-    returns   : ;
-    // ^ if the proposer decided to send the message, update the block, else keep the old block
 
     inputs    : ticker, delayedTicker ;
     feedback  :   ;
@@ -252,7 +250,7 @@ proposer  reward = [opengame|
     returns   : ;
     // ^ determines whether message is delayed or not
 
-    inputs    : ticker, delayedTicker, hashOld, hashNew ;
+    inputs    : ticker, delayedTicker, listHashes, proposedHash ;
     feedback  :   ;
     operation : forwardFunction $ delayMessage ;
     outputs   : messageSent ;
@@ -348,42 +346,27 @@ updatePayoffProposer  reward  = [opengame|
 -------------------
 
 -- One round game
-oneRound :: Double
-         -> Double
-         -> OpenGame
-               StochasticStatefulOptic
-               StochasticStatefulContext
-               '[ Kleisli Stochastic Int Send
-                , Kleisli Stochastic (Int, String, String) String
-                , Kleisli Stochastic (Int, String, String) String]
-               '[ [DiagnosticInfoBayesian Int Send]
-                , [DiagnosticInfoBayesian (Int, String, String) String]
-                , [DiagnosticInfoBayesian (Int, String, String) String]]
-               (Int, Int, String, [Char], [Char])
-               ()
-               (String, String, [Char], Stochastic Int)
-               ()
 oneRound  reward fee = [opengame|
 
-    inputs    : ticker, delayedTicker, hashOld, attesterHash1, attesterHash2 ;
+    inputs    : ticker, delayedTicker, listHashes, attesterHash1, attesterHash2, newProposedBlock ;
     feedback  :   ;
 
     :-----:
-    inputs    : ticker,delayedTicker,hashOld ;
+    inputs    : ticker,delayedTicker,listHashes,newProposedBlock ;
     feedback  :   ;
     operation : proposer reward ;
     outputs   : hashNew, delayedTickerUpdate ;
     returns   : ;
     // ^ Proposer makes a decision
 
-    inputs    : ticker, hashNew, hashOld ;
+    inputs    : ticker, hashNew, listHashes ;
     feedback  :   ;
     operation : attester "attester1" fee ;
     outputs   : attested1 ;
     returns   : ;
     // ^ Attester1 makes a decision
 
-    inputs    : ticker, hashNew, hashOld ;
+    inputs    : ticker, hashNew, listHashes ;
     feedback  :   ;
     operation : attester "attester2" fee ;
     outputs   : attested2 ;
@@ -444,12 +427,19 @@ oneRound  reward fee = [opengame|
 -- Repeated game
 repeatedGame reward fee = [opengame|
 
-    inputs    : ticker,delayedTicker, blockHash, attesterHash1, attesterHash2 ;
+    inputs    : ticker,delayedTicker, listHashes, attesterHash1, attesterHash2 ;
     feedback  :   ;
 
     :-----:
-    inputs    : ticker,delayedTicker, blockHash, attesterHash1, attesterHash2 ;
-    feedback  : correctAttestedOld  ;
+    inputs    : ticker ;
+    feedback  :   ;
+    operation : liftStochasticForward $ createRandomString ;
+    outputs   : newProposedBlock ;
+    returns   : ;
+
+
+    inputs    : ticker,delayedTicker, listHashes, attesterHash1, attesterHash2, newProposedBlock ;
+    feedback  :   ;
     operation : oneRound reward fee ;
     outputs   : attested1, attested2, hashNew, delayedTickerUpdate ;
     returns   :  ;
@@ -459,7 +449,6 @@ repeatedGame reward fee = [opengame|
     operation : forwardFunction transformTicker ;
     outputs   : tickerNew;
     returns   : ;
-
 
     :-----:
 
