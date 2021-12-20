@@ -11,7 +11,7 @@
 
 module Examples.TimingGames.TimingGame2 where
 
--- TODO Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step
+-- TODO Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step?
 -- TODO The renumeration of all players needs to be taken properly into account
 -- TODO Implement a hard-coded two stage version as well
 -- TODO Implement the renumeration of the proposer for later periods - now that is clear how it works in principle
