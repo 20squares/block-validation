@@ -9,7 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.TimingGames.TimingGame2 where
+module Examples.TimingGames.TimingGame2MultiPlayers where
 
 -- TODO Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step?
 -- TODO The renumeration of all players needs to be taken properly into account

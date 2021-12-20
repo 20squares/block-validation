@@ -9,7 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.TimingGames.TimingGame2V2 where
+module Examples.TimingGames.TimingGame2MultiPlayersV2 where
 
 
 -- TODO Should we simplify the building on previous blocks?
@@ -123,6 +123,7 @@ import Examples.Auctions.AuctionSupportFunctions
 import           Control.Monad.State  hiding (state,void)
 import qualified Control.Monad.State  as ST
 import           Data.List
+import qualified Data.Map.Strict      as M
 import           Data.Tuple.Extra (uncurry3)
 
 ----------
@@ -157,7 +158,6 @@ createRandomString 0 = uniformDist ["a","b"]
 createRandomString _ = playDeterministically mempty
 
 
-
 -- Given a previousString and the timer, produce a newString
 addString :: String -> Int -> String -> String
 addString str index new = new ++ drop index str
@@ -172,12 +172,15 @@ transformTicker 12 = 0
 transformTicker x  = x + 1
 
 -- Did the attester forward the correct state of the world?
-attestedCorrect hashOld hashNew = isSuffixOf hashOld hashNew
+attestedCorrect name hashMap hashNew =
+  let hashOld = hashMap M.! name
+     in isSuffixOf hashOld hashNew
 
 -- Did the proposer send the block? Gets rewarded if one of the attesters says so
-proposedCorrect hashOld hashNew1 hashNew2 = true1 && true2
-  where true1 = isSuffixOf hashOld hashNew1
-        true2 = isSuffixOf hashOld hashNew2
+proposedCorrect hashMap hashNew =
+  let hashes = M.elems hashMap
+      hashesCorrect = fmap (flip isSuffixOf $ hashNew) hashes
+      in and hashesCorrect
 
 -- draw from a timer which determines whether the message is delayed
 delaySendTime :: Int -> Int ->  Stochastic Int
@@ -191,6 +194,10 @@ delayMessage :: (Int, Int, String, String) -> String
 delayMessage (actualTimer, delayedTimer, oldMessage, newMessage)
   | actualTimer < delayedTimer = oldMessage
   | otherwise                  = newMessage
+
+-- transform list to Map; done here due to restrictions of DSL
+fromListToMap :: Ord a => [(a,b)] -> M.Map a b
+fromListToMap = M.fromList
 ------------
 -- 2 Payoffs
 ------------
@@ -290,17 +297,16 @@ attester name fee = [opengame|
 
     inputs    : hashNew, attestedIndex ;
     feedback  :   ;
-    operation : forwarfFunction attesterChoiceIndex ;
+    operation : forwardFunction $ uncurry attesterChoiceIndex ;
     outputs   : attestedHash;
     returns   : ;
-    // ^ produces the new hash given the proposed
+    // ^ produces the new hash given the decision by the attester what constitutes the head
 
     :-----:
 
     outputs   : attestedHash ;
     returns   :  ;
   |]
-
 
 updatePayoffAttester name fee  = [opengame|
     inputs    : bool ;
@@ -355,24 +361,16 @@ updatePayoffProposer  reward  = [opengame|
   |]
 
 
+----------------------
+-- 2 Group Game blocks
 
--------------------
--- 2 Complete games
--------------------
+-- Group all attesters together
+attestersGroupDecision reward fee = [opengame|
 
--- One round game
-oneRound  reward fee = [opengame|
-
-    inputs    : ticker, delayedTicker, listHashes, attesterHash1, attesterHash2, newProposedBlock ;
+    inputs    : ticker,hashNew,listHashes ;
     feedback  :   ;
 
     :-----:
-    inputs    : ticker,delayedTicker,listHashes,newProposedBlock ;
-    feedback  :   ;
-    operation : proposer reward ;
-    outputs   : hashNew, delayedTickerUpdate ;
-    returns   : ;
-    // ^ Proposer makes a decision
 
     inputs    : ticker, hashNew, listHashes ;
     feedback  :   ;
@@ -388,16 +386,35 @@ oneRound  reward fee = [opengame|
     returns   : ;
     // ^ Attester2 makes a decision
 
-    inputs    : attesterHash1, hashNew ;
+    inputs    : [("attester1",attested1),("attester2",attested2)] ;
+    feedback  : ;
+    operation : forwardFunction fromListToMap ;
+    outputs   : attesterHashMap ;
+    returns   : ;
+
+    :-----:
+
+    outputs   : attesterHashMap ;
+    returns   :  ;
+  |]
+
+-- Group payments by attesters
+attestersPayment fee = [opengame|
+
+    inputs    : attesterHashMap, hashNew ;
     feedback  :   ;
-    operation : forwardFunction $ uncurry attestedCorrect ;
+
+    :-----:
+    inputs    : attesterHashMap, hashNew ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry $ attestedCorrect "attester1" ;
     outputs   : correctAttested1 ;
     returns   : ;
     // ^ This determines whether attester 1 was correct in period (t-1)
 
-    inputs    : attesterHash2, hashNew ;
+    inputs    : attesterHashMap, hashNew ;
     feedback  :   ;
-    operation : forwardFunction $ uncurry attestedCorrect ;
+    operation : forwardFunction $ uncurry $ attestedCorrect "attester2" ;
     outputs   : correctAttested2 ;
     returns   : ;
     // ^ This determines whether attester 2 was correct in period (t-1)
@@ -417,9 +434,50 @@ oneRound  reward fee = [opengame|
     returns   : ;
     // ^ Updates the payoff of attester 2 given decision in period (t-1)
 
-    inputs    : attesterHash1, attesterHash2, hashNew ;
+        :-----:
+
+    outputs   :  ;
+    returns   :  ;
+  |]
+
+
+
+
+
+-------------------
+-- 2 Complete games
+-------------------
+
+-- One round game
+oneRound  reward fee = [opengame|
+
+    inputs    : ticker, delayedTicker, listHashes, attesterHashMap, newProposedBlock ;
     feedback  :   ;
-    operation : forwardFunction $ uncurry3 proposedCorrect ;
+
+    :-----:
+    inputs    : ticker,delayedTicker,listHashes,newProposedBlock ;
+    feedback  :   ;
+    operation : proposer reward ;
+    outputs   : hashNew, delayedTickerUpdate ;
+    returns   : ;
+    // ^ Proposer makes a decision
+
+    inputs    : ticker,hashNew,listHashes ;
+    feedback  :   ;
+    operation : attestersGroupDecision reward fee ;
+    outputs   : attesterHashMapNew ;
+    returns   :  ;
+
+
+    inputs    : attesterHashMap, hashNew ;
+    feedback  :   ;
+    operation : attestersPayment fee ;
+    outputs   : ;
+    returns   : ;
+
+    inputs    : attesterHashMap, hashNew ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry proposedCorrect ;
     outputs   : correctSent ;
     returns   : ;
     // ^ This determines whether the proposer was correct in period (t-1)
@@ -435,14 +493,14 @@ oneRound  reward fee = [opengame|
 
     :-----:
 
-    outputs   : attested1, attested2, hashNew, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, hashNew, delayedTickerUpdate ;
     returns   :  ;
   |]
 
 -- Repeated game
 repeatedGame reward fee = [opengame|
 
-    inputs    : ticker,delayedTicker, listHashes, attesterHash1, attesterHash2 ;
+    inputs    : ticker,delayedTicker, attesterHashMap, listHashes ;
     feedback  :   ;
 
     :-----:
@@ -453,10 +511,10 @@ repeatedGame reward fee = [opengame|
     returns   : ;
 
 
-    inputs    : ticker,delayedTicker, listHashes, attesterHash1, attesterHash2, newProposedBlock ;
+    inputs    : ticker,delayedTicker, listHashes, attesterHashMap, newProposedBlock ;
     feedback  :   ;
     operation : oneRound reward fee ;
-    outputs   : attested1, attested2, hashNew, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, listHashesNew, delayedTickerUpdate ;
     returns   :  ;
 
     inputs    : ticker;
@@ -467,7 +525,7 @@ repeatedGame reward fee = [opengame|
 
     :-----:
 
-    outputs   : tickerNew, delayedTickerUpdate, attested1, attested2, hashNew ;
+    outputs   : tickerNew, delayedTickerUpdate, attesterHashMapNew, listHashesNew ;
     returns   :  ;
   |]
 
@@ -476,22 +534,22 @@ repeatedGame reward fee = [opengame|
 -- Continuations
 -- extract continuation
 -- extract continuation
-extractContinuation :: StochasticStatefulOptic (Int, Int, String, [Char], [Char]) () (Int, Stochastic Int, String, [Char], [Char]) ()
-                    -> (Int, Stochastic Int, String, [Char], [Char])
+extractContinuation :: StochasticStatefulOptic (Int, Int, M.Map String String, String) () (Int, Stochastic Int, M.Map String String, String) ()
+                    -> (Int, Stochastic Int, M.Map String String, String)
                     -> StateT Vector Stochastic ()
-extractContinuation (StochasticStatefulOptic v u) (i, j, str1, str2, str3) = do
+extractContinuation (StochasticStatefulOptic v u) (i, j, strMap, str) = do
   j' <- ST.lift j
-  let x = (i, j', str1, str2, str3)
+  let x = (i, j', strMap, str)
   (z,a) <- ST.lift (v x)
   u z ()
 
 -- extract next state (action)
-extractNextState :: StochasticStatefulOptic (Int, Int, String, [Char], [Char]) () (Int, Stochastic Int, String, [Char], [Char]) ()
-                 -> (Int, Stochastic Int, String, [Char], [Char])
-                 -> Stochastic (Int, Stochastic Int, String, [Char], [Char])
-extractNextState (StochasticStatefulOptic v _) (i, j, str1, str2, str3) = do
+extractNextState :: StochasticStatefulOptic (Int, Int, M.Map String String, String) () (Int, Stochastic Int, M.Map String String, String) ()
+                 -> (Int, Stochastic Int, M.Map String String, String)
+                 -> Stochastic (Int, Stochastic Int, M.Map String String, String)
+extractNextState (StochasticStatefulOptic v _) (i, j, strMap, str) = do
   j' <- j
-  let x = (i, j', str1, str2, str3)
+  let x = (i, j', strMap, str)
   (z,a) <- v x
   pure a
 

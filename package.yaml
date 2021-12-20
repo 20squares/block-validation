@@ -62,6 +62,7 @@ dependencies:
     - graphviz
     - lens
     - typed-process
+    - containers
 
 
 executables:
