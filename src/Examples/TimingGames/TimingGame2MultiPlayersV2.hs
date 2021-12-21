@@ -13,7 +13,7 @@ module Examples.TimingGames.TimingGame2MultiPlayersV2 where
 
 
 
--- TODO Check payoffs for attesters and proposer
+-- TODO Check payoffs for attesters
 -- TODO Extend it towards another proposer game following the initial one
 -- TODO Should we simplify the building on previous blocks?
 -- TODO Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step?
@@ -179,11 +179,8 @@ attestedCorrect name hashMap hashNew =
   let hashOld = hashMap M.! name
      in isSuffixOf hashOld hashNew
 
--- Did the proposer send the block? Gets rewarded if one of the attesters says so
-proposedCorrect hashMap hashNew =
-  let hashes = M.elems hashMap
-      hashesCorrect = fmap (flip isSuffixOf $ hashNew) hashes
-      in and hashesCorrect
+-- Did the proposer send the block? Gets rewarded if the new proposed block builds on top of the old block
+proposedCorrect hashOld hashNew = isSuffixOf hashOld hashNew
 
 -- draw from a timer which determines whether the message is delayed
 delaySendTime :: Int -> Int ->  Stochastic Int
@@ -252,7 +249,7 @@ proposer  reward = [opengame|
     outputs   : sent ;
     returns   : 0;
     // ^ decision which hash to send forward (latest element, or second latest element etc.)
-    // ^ fix reward to zero; it is later updated where it is evaluated as correct or false
+    // ^ NOTE fix reward to zero; it is later updated where it is evaluated as correct or false
 
     inputs    : listHashes, sent, newProposedBlock ;
     feedback  :   ;
@@ -282,7 +279,7 @@ proposer  reward = [opengame|
     returns   :  ;
   |]
 
--- The attester observes the sent hash, the old hash, the timer, and can then decide whether to send the latest hash or not
+-- The attester observes the sent hash, the old hash, the timer, and can then decide which has to attest as the head
 attester name fee = [opengame|
 
     inputs    : ticker,hashNew,hashOld ;
@@ -296,7 +293,6 @@ attester name fee = [opengame|
     returns   : 0 ;
     // ^ the attester either can send the newHash or the oldHash
     // ^ NOTE the payoff for the attester comes from the next period
-    // ^ This needs to be carefully modelled
 
     inputs    : hashNew, attestedIndex ;
     feedback  :   ;
@@ -413,7 +409,7 @@ attestersPayment fee = [opengame|
     operation : forwardFunction $ uncurry $ attestedCorrect "attester1" ;
     outputs   : correctAttested1 ;
     returns   : ;
-    // ^ This determines whether attester 1 was correct in period (t-1)
+    // ^ This determines whether attester 1 was correct in period (t-1) using the latest hash and the old information
 
     inputs    : attesterHashMap, hashNew ;
     feedback  :   ;
@@ -454,37 +450,38 @@ attestersPayment fee = [opengame|
 -- One round game
 oneRound  reward fee = [opengame|
 
-    inputs    : ticker, delayedTicker, listHashes, attesterHashMap, newProposedBlock ;
+    inputs    : ticker, delayedTicker, proposerHashOld, attesterHashMapOld, newProposedBlock ;
+    // ^ proposerHashOld is the
     feedback  :   ;
 
     :-----:
-    inputs    : ticker,delayedTicker,listHashes,newProposedBlock ;
+    inputs    : ticker,delayedTicker,proposerHashOld,newProposedBlock ;
     feedback  :   ;
     operation : proposer reward ;
-    outputs   : hashNew, delayedTickerUpdate ;
+    outputs   : proposerHashNew, delayedTickerUpdate ;
     returns   : ;
-    // ^ Proposer makes a decision
+    // ^ Proposer makes a decision, a new has is proposed
 
-    inputs    : ticker,hashNew,listHashes ;
+    inputs    : ticker,proposerHashNew,proposerHashOld ;
     feedback  :   ;
     operation : attestersGroupDecision reward fee ;
     outputs   : attesterHashMapNew ;
     returns   :  ;
+    // ^ Attesters make a decision
 
-
-    inputs    : attesterHashMap, hashNew ;
+    inputs    : attesterHashMapOld, proposerHashNew ;
     feedback  :   ;
     operation : attestersPayment fee ;
     outputs   : ;
     returns   : ;
+    // ^ Attesters get rewarded
 
-    inputs    : attesterHashMap, hashNew ;
+    inputs    : proposerHashOld, proposerHashNew ;
     feedback  :   ;
     operation : forwardFunction $ uncurry proposedCorrect ;
     outputs   : correctSent ;
     returns   : ;
     // ^ This determines whether the proposer was correct in period (t-1)
-
 
 
     inputs    : correctSent ;
@@ -496,14 +493,14 @@ oneRound  reward fee = [opengame|
 
     :-----:
 
-    outputs   : attesterHashMapNew, hashNew, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, proposerHashNew, delayedTickerUpdate ;
     returns   :  ;
   |]
 
 -- Repeated game
 repeatedGame reward fee = [opengame|
 
-    inputs    : ticker,delayedTicker, attesterHashMap, listHashes ;
+    inputs    : ticker,delayedTicker, attesterHashMapOld, proposerHashOld ;
     feedback  :   ;
 
     :-----:
@@ -514,7 +511,7 @@ repeatedGame reward fee = [opengame|
     returns   : ;
 
 
-    inputs    : ticker,delayedTicker, listHashes, attesterHashMap, newProposedBlock ;
+    inputs    : ticker,delayedTicker, proposerHashOld, attesterHashMapOld, newProposedBlock ;
     feedback  :   ;
     operation : oneRound reward fee ;
     outputs   : attesterHashMapNew, listHashesNew, delayedTickerUpdate ;
@@ -531,7 +528,6 @@ repeatedGame reward fee = [opengame|
     outputs   : tickerNew, delayedTickerUpdate, attesterHashMapNew, listHashesNew ;
     returns   :  ;
   |]
-
 
 ----------------
 -- Continuations
