@@ -175,9 +175,11 @@ transformTicker 12 = 0
 transformTicker x  = x + 1
 
 -- Did the attester forward the correct state of the world?
+-- Compare the hash he reported (in t-1) with current block
+-- Is the tail the same?
 attestedCorrect name hashMap hashNew =
   let hashOld = hashMap M.! name
-     in isSuffixOf hashOld hashNew
+     in hashOld == (tail hashNew)
 
 -- Did the proposer send the block? Gets rewarded if the new proposed block builds on top of the old block
 proposedCorrect hashOld hashNew = isSuffixOf hashOld hashNew
