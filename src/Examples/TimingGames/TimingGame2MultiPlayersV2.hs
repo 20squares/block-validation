@@ -204,11 +204,8 @@ fromListToMap = M.fromList
 -- 2 Payoffs
 ------------
 
--- The attester is rewarded if their vote is included in block B′
--- and is correct, i.e., voted ∅ if B′ did not build on B, and hash(B)
--- otherwise.
+  -- The attester  and the proposer are rewarded if their decision has been evaluated by _attestedCorrect_ resp. _proposedCorrect_ as correct
 attesterPayoff successFee verified = if verified then successFee else 0
-
 proposerPayoff reward verified  = if verified then reward else 0
 
 ---------------------

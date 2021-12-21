@@ -54,6 +54,4 @@ spec2 = describe
         shouldBe
           (attestedCorrect "attester2" testMap "dcba")
           False
-
-
   where testMap = M.fromList [("attester1","cba"),("attester2","ba")]
