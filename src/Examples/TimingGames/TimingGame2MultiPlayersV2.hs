@@ -12,6 +12,9 @@
 module Examples.TimingGames.TimingGame2MultiPlayersV2 where
 
 
+
+-- TODO Check payoffs for attesters and proposer
+-- TODO Extend it towards another proposer game following the initial one
 -- TODO Should we simplify the building on previous blocks?
 -- TODO Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step?
 -- TODO The renumeration of all players needs to be taken properly into account
