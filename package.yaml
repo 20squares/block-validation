@@ -65,6 +65,7 @@ dependencies:
     - lens
     - typed-process
     - containers
+    - algebraic-graphs
 
 
 executables:

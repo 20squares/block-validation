@@ -12,14 +12,13 @@
 module Examples.TimingGames.TimingGame2MultiPlayersV2 where
 
 
-
--- TODO Check payoffs for attesters
+-- TODO In the case of a fork, the head is either h(1) or h(2). This is determined by the GHOST rule. For instance, if A votes h(0), C and D vote h(2), then h(2) will be the head, and A, C and D would be rewarded, while both proposer B(1) and attester B would get 0.
 -- TODO Extend it towards another proposer game following the initial one
 -- TODO Should we simplify the building on previous blocks?
 -- TODO Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step?
--- TODO The renumeration of all players needs to be taken properly into account
 -- TODO Implement a hard-coded two stage version as well
--- TODO Implement the renumeration of the proposer for later periods - now that is clear how it works in principle
+-- DONE Implement the renumeration of the proposer for later periods - now that is clear how it works in principle
+-- DONE Check payoffs for attesters
 -- DONE Currently, the proposer is also not affected by not proposing something; only the attester suffers
 -- DONE Check the initial state conditions make sense
 -- DONE Test that the payoff version actually works
@@ -28,6 +27,8 @@ module Examples.TimingGames.TimingGame2MultiPlayersV2 where
 -- DONE Do we need more attesters to make that model relevant?
 -- DONE What is the payoff for the sender?
 -- DONE Check strategies and explore game
+
+-- FIXME For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?
 
 -- NOTE Difference to version 1 is that the attester is deciding actively what the head of the game is
 
@@ -236,7 +237,7 @@ addHash = [opengame|
 -- A proposer observes the ticker and decides to send the block or not
 -- If the decision is to send, the exogenous block is sent, otherwise the empty string
 -- There is a delay built in, determined at t=0. If true, the new message is not sent but the old message is until the delay if over.
-proposer  reward = [opengame|
+proposer  = [opengame|
 
     inputs    : ticker, delayedTicker, listHashes, newProposedBlock;
     feedback  :   ;
@@ -279,7 +280,7 @@ proposer  reward = [opengame|
   |]
 
 -- The attester observes the sent hash, the old hash, the timer, and can then decide which has to attest as the head
-attester name fee = [opengame|
+attester name = [opengame|
 
     inputs    : ticker,hashNew,hashOld ;
     feedback  :  ;
@@ -363,7 +364,7 @@ updatePayoffProposer  reward  = [opengame|
 -- 2 Group Game blocks
 
 -- Group all attesters together
-attestersGroupDecision reward fee = [opengame|
+attestersGroupDecision  = [opengame|
 
     inputs    : ticker,hashNew,listHashes ;
     feedback  :   ;
@@ -372,14 +373,14 @@ attestersGroupDecision reward fee = [opengame|
 
     inputs    : ticker, hashNew, listHashes ;
     feedback  :   ;
-    operation : attester "attester1" fee ;
+    operation : attester "attester1"  ;
     outputs   : attested1 ;
     returns   : ;
     // ^ Attester1 makes a decision
 
     inputs    : ticker, hashNew, listHashes ;
     feedback  :   ;
-    operation : attester "attester2" fee ;
+    operation : attester "attester2"  ;
     outputs   : attested2 ;
     returns   : ;
     // ^ Attester2 makes a decision
@@ -439,9 +440,6 @@ attestersPayment fee = [opengame|
   |]
 
 
-
-
-
 -------------------
 -- 2 Complete games
 -------------------
@@ -450,20 +448,20 @@ attestersPayment fee = [opengame|
 oneRound  reward fee = [opengame|
 
     inputs    : ticker, delayedTicker, proposerHashOld, attesterHashMapOld, newProposedBlock ;
-    // ^ proposerHashOld is the
+    // ^ proposerHashOld is the old hash
     feedback  :   ;
 
     :-----:
     inputs    : ticker,delayedTicker,proposerHashOld,newProposedBlock ;
     feedback  :   ;
-    operation : proposer reward ;
+    operation : proposer ;
     outputs   : proposerHashNew, delayedTickerUpdate ;
     returns   : ;
-    // ^ Proposer makes a decision, a new has is proposed
+    // ^ Proposer makes a decision, a new hash is proposed
 
     inputs    : ticker,proposerHashNew,proposerHashOld ;
     feedback  :   ;
-    operation : attestersGroupDecision reward fee ;
+    operation : attestersGroupDecision ;
     outputs   : attesterHashMapNew ;
     returns   :  ;
     // ^ Attesters make a decision
