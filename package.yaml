@@ -42,6 +42,7 @@ library:
     - Examples.Markov.TwoStageMarkov
     - Examples.TimingGames.TimingGame2MultiPlayersV2
     - Examples.TimingGames.GraphGames.Internal
+    - Examples.TimingGames.TimingGameGraphsAnalysis
     - Graphics
 
 dependencies:
@@ -67,7 +68,7 @@ dependencies:
     - typed-process
     - containers
     - algebraic-graphs
-
+    - NumInstances
 
 executables:
   open-games-exe:
@@ -91,9 +92,8 @@ executables:
 
 tests:
   test-open-games:
-    buildable: True
-    main: Spec
-    source-dirs: tests
+    main: Spec.hs
+    source-dirs: src/test
     dependencies:
       - open-games-hs
       - template-haskell

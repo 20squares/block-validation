@@ -4,7 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Spec where
+module StringSpec where
 
 import qualified Data.Map.Strict      as M
 import Test.Hspec
@@ -13,11 +13,10 @@ import Test.QuickCheck
 import Engine.Engine
 import Examples.TimingGames.TimingGame2MultiPlayersV2
 
-
-main = do
-  hspec $ do spec1
-             spec2
-
+spec :: Spec
+spec = do
+  spec1
+  spec2
 
 -- Tests on the correctness of reward for proposer
 spec1 = describe

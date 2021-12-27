@@ -128,6 +128,7 @@ import           Control.Monad.State  hiding (state,void)
 import qualified Control.Monad.State  as ST
 import           Data.List
 import qualified Data.Map.Strict      as M
+import           Data.NumInstances.Tuple
 import qualified Data.Set             as S
 import           Data.Tuple.Extra (uncurry3)
 
@@ -160,16 +161,6 @@ type Chain = Relation (Id,Vote)
 ------------------------
 -- 1 Auxiliary functions
 ------------------------
--- given a string and the send decision, send a string
-sendHash :: String -> String -> Send -> String
-sendHash oldHash newHash DoNotSend = oldHash
-sendHash oldHash newHash Send      = newHash
-
--- Given the timer, produce a newString at t=0 and keep the old one instead
-createRandomString :: Int -> Stochastic String
-createRandomString 0 = uniformDist ["a","b"]
-createRandomString _ = playDeterministically mempty
-
 
 -- Given a previous chain, id, and a new hash, extend the chain accordingly
 -- initially, that vertex has empty votes
@@ -188,6 +179,7 @@ addToChain chain id  =
       -- ^ update the connection of the new chain
 
 -- Find vertex in a chain given unique id
+-- FIXME What if non-existing id?
 findVertexById :: Chain -> Id -> (Id,Vote)
 findVertexById chain id =
   let  verticeLs = vertexList chain
@@ -195,6 +187,7 @@ findVertexById chain id =
        in head $ filter (\(id',_) -> id' == id) verticeLs
 
 -- For attester choose the string which he believes is the head and update the chain accordingly
+-- FIXME What if non-existing id?
 attesterChoiceIndex :: Chain -> Id -> Chain
 attesterChoiceIndex chain id =
   let (id',i) = findVertexById chain id
@@ -234,6 +227,7 @@ attestedCorrect name map chain headOfChain =
       -- ^ is the head in that successor set?
 
 -- Find the current head of a chain according to GHOST
+-- FIXME is the calculation actually correct? Needs to include all children along the path, no. CHECK
 determineHead :: Chain -> Id
 determineHead chain =
   let root = findRoot chain
@@ -254,7 +248,7 @@ determineHead chain =
               then x : findRoots xs ls
               else findRoots xs ls
       -- Given a chain and a starting node, finds the head with the most weights along the path
-      -- FIXME
+      -- FIXME head
       findHead :: Chain -> (Id,Vote) -> (Id,Vote)
       findHead chain root =
         if S.null nextVertexSet
