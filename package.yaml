@@ -41,6 +41,7 @@ library:
     - Examples.Markov.RepeatedPDNonState
     - Examples.Markov.TwoStageMarkov
     - Examples.TimingGames.TimingGame2MultiPlayersV2
+    - Examples.TimingGames.GraphGames.Internal
     - Graphics
 
 dependencies:
