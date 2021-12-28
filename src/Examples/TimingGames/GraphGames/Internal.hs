@@ -129,6 +129,7 @@ import qualified Control.Monad.State  as ST
 import           Data.List
 import qualified Data.Map.Strict      as M
 import           Data.NumInstances.Tuple
+-- NOTE ^^ this is for satisfying the class restrictions of Algebra.Graph.Relation
 import qualified Data.Set             as S
 import           Data.Tuple.Extra (uncurry3)
 
@@ -165,6 +166,7 @@ type Chain = Relation (Id,Vote)
 -- Given a previous chain, id, and a new hash, extend the chain accordingly
 -- initially, that vertex has empty votes
 -- it is assigned a unique id
+-- FIXME What if non existing id?
 addToChain :: Chain -> Id -> Chain
 addToChain chain id  =
   let newId = vertexCount chain + 1
@@ -194,6 +196,7 @@ attesterChoiceIndex chain id =
       in replaceVertex (id',i) (id',i+1) chain
 
 -- Given an initial chain and a list of votes on _Id_s, update the chain
+-- FIXME What if non-existing id?
 updateVotes :: Chain -> [Id] -> Chain
 updateVotes chain [] = chain
 updateVotes chain (i:is) = updateVotes (attesterChoiceIndex chain i) is
@@ -203,28 +206,6 @@ transformTicker :: Timer -> Timer
 transformTicker 12 = 0
 transformTicker x  = x + 1
 
--- Did the attester forward the correct state of the world?
--- Compare the hash he reported (in t-1) with current block
--- Is the tail the same?
-attestedCorrect2 name hashMap hashNew =
-  let hashOld = hashMap M.! name
-     in hashOld == (tail hashNew)
-
--- Is the node the attester voted for on the path to the latest head?
-attestedCorrect :: Player -> M.Map Player Id -> Chain -> Id -> Bool
-attestedCorrect name map chain headOfChain =
-  let idChosen = map M.! name
-      -- ^ id voted for by player
-      chosenNode = findVertexById chain idChosen
-      -- ^ vertex chosen
-      headNode = findVertexById chain headOfChain
-      -- ^ vertex which is head of the chain
-      chainClosure = closure chain
-      -- ^ transitive closure of chain
-      setOnPath = postSet chosenNode chainClosure
-      -- ^ elements that are successors of id'
-      in S.member headNode setOnPath
-      -- ^ is the head in that successor set?
 
 -- Find the current head of a chain according to GHOST
 -- FIXME is the calculation actually correct? Needs to include all children along the path, no. CHECK
@@ -257,13 +238,31 @@ determineHead chain =
                     in findHead chain (id,vote)
         where nextVertexSet = postSet root chain
 
+-- Is the node the attester voted for on the path to the latest head?
+-- FIXME player name, id not given
+attestedCorrect :: Player -> M.Map Player Id -> Chain -> Id -> Bool
+attestedCorrect name map chain headOfChain =
+  let idChosen = map M.! name
+      -- ^ id voted for by player
+      chosenNode = findVertexById chain idChosen
+      -- ^ vertex chosen
+      headNode = findVertexById chain headOfChain
+      -- ^ vertex which is head of the chain
+      chainClosure = closure chain
+      -- ^ transitive closure of chain; needed to get all connections
+      setOnPath = postSet chosenNode chainClosure
+      -- ^ elements that are successors of id'
+      in S.member headNode setOnPath
+      -- ^ is the head in that successor set?
+
 -- Did the proposer from (t-1) send the block? Gets rewarded if that block is on the path to the current head.
 proposedCorrect :: Chain -> Id -> Bool
 proposedCorrect chain headOfChain =
-  let pastHeadId  = vertexCount chain - 1
+  let pastHeadId  = vertexCount chain - 2
       pastHead    = findVertexById chain pastHeadId
       currentHead = findVertexById chain headOfChain
-      onPathElems = postSet currentHead chain
+      chainClosure = closure chain
+      onPathElems = preSet currentHead chainClosure
       in S.member pastHead onPathElems
 
 
@@ -318,7 +317,7 @@ addBlock = [opengame|
 -- A proposer observes the ticker and decides to send the block or not
 -- If the decision is to send, the exogenous block is sent, otherwise the empty string
 -- There is a delay built in, determined at t=0. If true, the new message is not sent but the old message is until the delay if over.
-proposer  = [opengame|
+proposer  name = [opengame|
 
     inputs    : ticker, delayedTicker, chainOld;
     feedback  :   ;
@@ -326,7 +325,7 @@ proposer  = [opengame|
     :-----:
     inputs    : ticker, chainOld ;
     feedback  :   ;
-    operation : dependentDecision "proposer" (\(t,chainOld) -> [0,vertexCount chainOld]) ;
+    operation : dependentDecision name (\(t,chainOld) -> [0,vertexCount chainOld]) ;
     outputs   : sent ;
     returns   : 0;
     // ^ decision which hash to send forward (latest element, or second latest element etc.)
@@ -407,7 +406,7 @@ updatePayoffAttester name fee  = [opengame|
 
   |]
 
-updatePayoffProposer  reward  = [opengame|
+updatePayoffProposer name reward  = [opengame|
     inputs    : bool ;
     feedback  :   ;
 
@@ -422,7 +421,7 @@ updatePayoffProposer  reward  = [opengame|
 
     inputs    : value ;
     feedback  :   ;
-    operation : addPayoffs "proposer" ;
+    operation : addPayoffs name ;
     outputs   : ;
     returns   : ;
     // ^ Could make sense to make sense to model this in period
@@ -453,7 +452,7 @@ determineHeadOfChain = [opengame|
   |]
 
 
-proposerPayment  reward = [opengame|
+proposerPayment name reward = [opengame|
 
     inputs    : chainNew, headOfChain ;
     feedback  :   ;
@@ -469,7 +468,7 @@ proposerPayment  reward = [opengame|
 
     inputs    : correctSent ;
     feedback  :   ;
-    operation : updatePayoffProposer reward;
+    operation : updatePayoffProposer name reward;
     outputs   : ;
     returns   : ;
     // ^ Updates the payoff of the proposer given decision in period (t-1)
@@ -486,7 +485,9 @@ proposerPayment  reward = [opengame|
 -- 2 Group Game blocks
 
 -- Group all attesters together
-attestersGroupDecision :: OpenGame
+attestersGroupDecision :: Player
+                       -> Player
+                       ->  OpenGame
                             StochasticStatefulOptic
                             StochasticStatefulContext
                             ('[Kleisli Stochastic (Timer, Relation (Id, Vote), Chain) Int,
@@ -497,7 +498,7 @@ attestersGroupDecision :: OpenGame
                             ()
                             (M.Map Player Id, Chain)
                             ()
-attestersGroupDecision  = [opengame|
+attestersGroupDecision name1 name2 = [opengame|
 
     inputs    : ticker,chainNew,chainOld ;
     feedback  :   ;
@@ -506,19 +507,19 @@ attestersGroupDecision  = [opengame|
 
     inputs    : ticker, chainNew, chainOld ;
     feedback  :   ;
-    operation : attester "attester1"  ;
+    operation : attester name1  ;
     outputs   : attested1 ;
     returns   : ;
     // ^ Attester1 makes a decision
 
     inputs    : ticker, chainNew, chainOld ;
     feedback  :   ;
-    operation : attester "attester2"  ;
+    operation : attester name2  ;
     outputs   : attested2 ;
     returns   : ;
     // ^ Attester2 makes a decision
 
-    inputs    : [("attester1",attested1),("attester2",attested2)] ;
+    inputs    : [(name1,attested1),(name2,attested2)] ;
     feedback  : ;
     operation : forwardFunction fromListToMap ;
     outputs   : attesterHashMap ;
@@ -540,7 +541,7 @@ attestersGroupDecision  = [opengame|
   |]
 
 -- Group payments by attesters
-attestersPayment fee = [opengame|
+attestersPayment name1 name2 fee = [opengame|
 
     inputs    : attesterHashMap, chainNew, headId;
     feedback  :   ;
@@ -548,14 +549,14 @@ attestersPayment fee = [opengame|
     :-----:
     inputs    : attesterHashMap, chainNew, headId ;
     feedback  :   ;
-    operation : forwardFunction $ uncurry3 $ attestedCorrect "attester1" ;
+    operation : forwardFunction $ uncurry3 $ attestedCorrect name1 ;
     outputs   : correctAttested1 ;
     returns   : ;
     // ^ This determines whether attester 1 was correct in period (t-1) using the latest hash and the old information
 
     inputs    : attesterHashMap, chainNew, headId ;
     feedback  :   ;
-    operation : forwardFunction $ uncurry3 $ attestedCorrect "attester2" ;
+    operation : forwardFunction $ uncurry3 $ attestedCorrect name2 ;
     outputs   : correctAttested2 ;
     returns   : ;
     // ^ This determines whether attester 2 was correct in period (t-1)
@@ -563,14 +564,14 @@ attestersPayment fee = [opengame|
 
     inputs    : correctAttested1 ;
     feedback  :   ;
-    operation : updatePayoffAttester "attester1" fee ;
+    operation : updatePayoffAttester name1 fee ;
     outputs   : ;
     returns   : ;
     // ^ Updates the payoff of attester 1 given decision in period (t-1)
 
     inputs    : correctAttested2 ;
     feedback  :   ;
-    operation : updatePayoffAttester "attester2" fee ;
+    operation : updatePayoffAttester name2 fee ;
     outputs   : ;
     returns   : ;
     // ^ Updates the payoff of attester 2 given decision in period (t-1)
@@ -587,7 +588,7 @@ attestersPayment fee = [opengame|
 -------------------
 
 -- One round game
-oneRound  reward fee = [opengame|
+oneRound proposerName attesterName1 attesterName2 reward fee = [opengame|
 
     inputs    : ticker, delayedTicker, chainOld, attesterHashMapOld  ;
     // ^ chainOld is the old hash
@@ -596,14 +597,14 @@ oneRound  reward fee = [opengame|
     :-----:
     inputs    : ticker,delayedTicker,chainOld ;
     feedback  :   ;
-    operation : proposer ;
+    operation : proposer proposerName;
     outputs   : chainNew, delayedTickerUpdate ;
     returns   : ;
     // ^ Proposer makes a decision, a new hash is proposed
 
     inputs    : ticker,chainNew,chainOld ;
     feedback  :   ;
-    operation : attestersGroupDecision ;
+    operation : attestersGroupDecision attesterName1 attesterName2 ;
     outputs   : attesterHashMapNew, chainNewUpdated ;
     returns   :  ;
     // ^ Attesters make a decision
@@ -617,14 +618,14 @@ oneRound  reward fee = [opengame|
 
     inputs    : attesterHashMapOld, chainNew, headOfChainId ;
     feedback  :   ;
-    operation : attestersPayment fee ;
+    operation : attestersPayment attesterName1 attesterName2 fee ;
     outputs   : ;
     returns   : ;
     // ^ Attesters get rewarded
 
     inputs    : chainNew, headOfChainId ;
     feedback  :   ;
-    operation : proposerPayment reward ;
+    operation : proposerPayment proposerName reward ;
     outputs   :  ;
     returns   : ;
     // ^ This determines whether the proposer was correct in period (t-1) and payments
@@ -637,7 +638,7 @@ oneRound  reward fee = [opengame|
 
 
 -- Repeated game
-repeatedGame reward fee = [opengame|
+repeatedGame proposerName attesterName1 attesterName2 reward fee = [opengame|
 
     inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
@@ -646,7 +647,7 @@ repeatedGame reward fee = [opengame|
 
     inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
-    operation : oneRound reward fee ;
+    operation : oneRound proposerName attesterName1 attesterName2 reward fee ;
     outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
     returns   :  ;
 
@@ -661,6 +662,36 @@ repeatedGame reward fee = [opengame|
     outputs   : tickerNew, delayedTickerUpdate, chainNew, attesterHashMapNew ;
     returns   :  ;
   |]
+
+
+-- Repeated game
+twoRoundGame reward fee = [opengame|
+
+    inputs    : ticker1,delayedTicker1,ticker2,delayedTicker2, chainOld, attesterHashMapOld ;
+    feedback  :   ;
+
+    :-----:
+
+    inputs    : ticker1,delayedTicker1, chainOld, attesterHashMapOld ;
+    feedback  :   ;
+    operation : repeatedGame "proposer1" "attesterA" "attesterB" reward fee ;
+    outputs   : tickerNew, delayedTickerUpdate, chainNew, attesterHashMapNew ;
+    returns   :  ;
+
+    inputs    : ticker2,delayedTicker2, chainNew, attesterHashMapNew ;
+    feedback  :   ;
+    operation : repeatedGame "proposer2" "attesterC" "attesterD" reward fee ;
+    outputs   :  tickerNew2, delayedTickerUpdate2, chainNew2, attesterHashMapNew2 ;
+    returns   :  ;
+
+    :-----:
+
+    outputs   :  ;
+    returns   :  ;
+  |]
+
+
+
 
 ----------------
 -- Continuations
@@ -699,10 +730,10 @@ determineContinuationPayoffs iterator strat action = do
    extractContinuation executeStrat action
    nextInput <- ST.lift $ extractNextState executeStrat action
    determineContinuationPayoffs (pred iterator) strat nextInput
- where executeStrat =  play (repeatedGame  2 2) strat
+ where executeStrat =  play (repeatedGame "proposer" "attester1" "attester2" 2 2) strat
 
 
-executeStrat strat =  play (repeatedGame 2 2) strat
+executeStrat strat =  play (repeatedGame "proposer" "attester1" "attester2" 2 2) strat
 
 -- fix context used for the evaluation
 contextCont iterator strat initialAction = StochasticStatefulContext (pure ((),initialAction)) (\_ action -> determineContinuationPayoffs iterator strat action)
