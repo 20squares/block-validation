@@ -11,12 +11,12 @@
 
 module Examples.TimingGames.GraphGames.Internal where
 
--- TODO Simplify find vertex by id, comes up at several points
--- TODO Test graph functions
--- TODO Extend it towards another proposer game following the initial one
--- TODO Should we simplify the building on previous blocks?
--- TODO Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step?
--- TODO Implement a hard-coded two stage version as well
+-- DONE Simplify find vertex by id, comes up at several points
+-- DONE Test graph functions
+-- DONE Extend it towards another proposer game following the initial one
+-- DONE Should we simplify the building on previous blocks?
+-- DONE Implement the sequence; how can we collect votes on the game tree? Make the graph an internal state of the game and update it accordingly at each step?
+-- DONE Implement a hard-coded two stage version as well
 -- DONE In the case of a fork, the head is either h(1) or h(2). This is determined by the GHOST rule. For instance, if A votes h(0), C and D vote h(2), then h(2) will be the head, and A, C and D would be rewarded, while both proposer B(1) and attester B would get 0.
 -- DONE Implement the renumeration of the proposer for later periods - now that is clear how it works in principle
 -- DONE Check payoffs for attesters
@@ -126,7 +126,6 @@ import           Preprocessor.Preprocessor
 import           Algebra.Graph.Relation
 import           Control.Monad.State  hiding (state,void)
 import qualified Control.Monad.State  as ST
-import           Data.List
 import qualified Data.Map.Strict      as M
 import           Data.NumInstances.Tuple
 -- NOTE ^^ this is for satisfying the class restrictions of Algebra.Graph.Relation
@@ -186,7 +185,7 @@ findVertexById :: Chain -> Id -> (Id,Vote)
 findVertexById chain id =
   let  verticeLs = vertexList chain
        -- ^ list of vertices
-       in head $ filter (\(id',_) -> id' == id) verticeLs
+       in (head $ filter (\(id',_) -> id' == id) verticeLs)
 
 -- For attester choose the string which he believes is the head and update the chain accordingly
 -- FIXME What if non-existing id?
@@ -325,7 +324,7 @@ proposer  name = [opengame|
     :-----:
     inputs    : ticker, chainOld ;
     feedback  :   ;
-    operation : dependentDecision name (\(t,chainOld) -> [0,vertexCount chainOld]) ;
+    operation : dependentDecision name (\(t,chainOld) -> [1,vertexCount chainOld]) ;
     outputs   : sent ;
     returns   : 0;
     // ^ decision which hash to send forward (latest element, or second latest element etc.)
@@ -368,7 +367,7 @@ attester name = [opengame|
     :-----:
     inputs    : ticker,chainNew,chainOld ;
     feedback  :   ;
-    operation : dependentDecision name (\(ticker, chainNew, chainOld) -> [0, vertexCount chainNew]) ;
+    operation : dependentDecision name (\(ticker, chainNew, chainOld) -> [1, vertexCount chainNew]) ;
     outputs   : attestedIndex ;
     returns   : 0 ;
     // ^ the attester either can send the newHash or the oldHash
@@ -588,7 +587,7 @@ attestersPayment name1 name2 fee = [opengame|
 -------------------
 
 -- One round game
-oneRound proposerName attesterName1 attesterName2 reward fee = [opengame|
+oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     inputs    : ticker, delayedTicker, chainOld, attesterHashMapOld  ;
     // ^ chainOld is the old hash
@@ -597,14 +596,14 @@ oneRound proposerName attesterName1 attesterName2 reward fee = [opengame|
     :-----:
     inputs    : ticker,delayedTicker,chainOld ;
     feedback  :   ;
-    operation : proposer proposerName;
+    operation : proposer p1;
     outputs   : chainNew, delayedTickerUpdate ;
     returns   : ;
     // ^ Proposer makes a decision, a new hash is proposed
 
     inputs    : ticker,chainNew,chainOld ;
     feedback  :   ;
-    operation : attestersGroupDecision attesterName1 attesterName2 ;
+    operation : attestersGroupDecision a11 a21 ;
     outputs   : attesterHashMapNew, chainNewUpdated ;
     returns   :  ;
     // ^ Attesters make a decision
@@ -618,17 +617,17 @@ oneRound proposerName attesterName1 attesterName2 reward fee = [opengame|
 
     inputs    : attesterHashMapOld, chainNew, headOfChainId ;
     feedback  :   ;
-    operation : attestersPayment attesterName1 attesterName2 fee ;
+    operation : attestersPayment a10 a20 fee ;
     outputs   : ;
     returns   : ;
-    // ^ Attesters get rewarded
+    // ^ Determines whether attesters from period (t-1) were correct and get rewarded
 
     inputs    : chainNew, headOfChainId ;
     feedback  :   ;
-    operation : proposerPayment proposerName reward ;
+    operation : proposerPayment p0 reward ;
     outputs   :  ;
     returns   : ;
-    // ^ This determines whether the proposer was correct in period (t-1) and payments
+    // ^ This determines whether the proposer from period (t-1) was correct and triggers payments accordingly
 
     :-----:
 
@@ -638,7 +637,7 @@ oneRound proposerName attesterName1 attesterName2 reward fee = [opengame|
 
 
 -- Repeated game
-repeatedGame proposerName attesterName1 attesterName2 reward fee = [opengame|
+repeatedGame  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
@@ -647,7 +646,7 @@ repeatedGame proposerName attesterName1 attesterName2 reward fee = [opengame|
 
     inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
-    operation : oneRound proposerName attesterName1 attesterName2 reward fee ;
+    operation : oneRound p0 p1 a10 a20 a11 a21 reward fee ;
     outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
     returns   :  ;
 
@@ -665,7 +664,7 @@ repeatedGame proposerName attesterName1 attesterName2 reward fee = [opengame|
 
 
 -- Repeated game
-twoRoundGame reward fee = [opengame|
+twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
     inputs    : ticker1,delayedTicker1,ticker2,delayedTicker2, chainOld, attesterHashMapOld ;
     feedback  :   ;
@@ -674,13 +673,13 @@ twoRoundGame reward fee = [opengame|
 
     inputs    : ticker1,delayedTicker1, chainOld, attesterHashMapOld ;
     feedback  :   ;
-    operation : repeatedGame "proposer1" "attesterA" "attesterB" reward fee ;
+    operation : repeatedGame p0 p1 a10 a20 a11 a21 reward fee ;
     outputs   : tickerNew, delayedTickerUpdate, chainNew, attesterHashMapNew ;
     returns   :  ;
 
     inputs    : ticker2,delayedTicker2, chainNew, attesterHashMapNew ;
     feedback  :   ;
-    operation : repeatedGame "proposer2" "attesterC" "attesterD" reward fee ;
+    operation : repeatedGame p1 p2 a11 a21 a12 a22 reward fee ;
     outputs   :  tickerNew2, delayedTickerUpdate2, chainNew2, attesterHashMapNew2 ;
     returns   :  ;
 
@@ -730,10 +729,10 @@ determineContinuationPayoffs iterator strat action = do
    extractContinuation executeStrat action
    nextInput <- ST.lift $ extractNextState executeStrat action
    determineContinuationPayoffs (pred iterator) strat nextInput
- where executeStrat =  play (repeatedGame "proposer" "attester1" "attester2" 2 2) strat
+ where executeStrat =  play (repeatedGame "proposer" "proposerPast" "attester1" "attester2" "attester1past" "attester2Past" 2 2) strat
 
 
-executeStrat strat =  play (repeatedGame "proposer" "attester1" "attester2" 2 2) strat
+executeStrat strat =  play (repeatedGame "proposer" "proposerPast" "attester1" "attester2" "attester1past" "attester2Past" 2 2) strat
 
 -- fix context used for the evaluation
 contextCont iterator strat initialAction = StochasticStatefulContext (pure ((),initialAction)) (\_ action -> determineContinuationPayoffs iterator strat action)
