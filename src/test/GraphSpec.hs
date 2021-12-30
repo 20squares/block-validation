@@ -72,15 +72,15 @@ attested = describe
          True
      it "attested correctly non-linear chain" $ do
        shouldBe
-         (attestedCorrect "p1" testMap (overlay testChain (edges [((2,1),(5,4))])) 5)
+         (attestedCorrect "p1" testMap (overlay testChain (edges [((2,2),(5,4))])) 5)
          True
      it "attested incorrectly non-linear chain" $ do
        shouldBe
-         (attestedCorrect "p2" testMap (overlay testChain (edges [((2,1),(5,4))])) 5)
+         (attestedCorrect "p2" testMap (overlay testChain (edges [((2,2),(5,4))])) 5)
          False
      it "attested correctly non-linear chain fork" $ do
        shouldBe
-         (attestedCorrect "p3" testMap (overlay testChain (edges [((2,1),(5,4))])) 5)
+         (attestedCorrect "p3" testMap (overlay testChain (edges [((2,2),(5,4))])) 5)
          True
 
 proposed = describe
@@ -91,19 +91,15 @@ proposed = describe
          True
      it "proposed incorrectly forked chain" $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,1),(5,4))]))) 4)
+         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4))]))) 4)
          False
      it "proposed incorrectly forked chain (2)" $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,1),(5,4))]))) 3)
-         False
-     it "proposed incorrectly forked chain (3)" $ do
-       shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,1),(5,4))]))) 2)
+         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4))]))) 3)
          False
      it "proposed correctly forked chain " $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,1),(5,4)),((5,4),(6,3))]))) 6)
+         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4)),((5,4),(6,3))]))) 6)
          True
      it "proposed correctly forked chain (2)" $ do
         shouldBe
