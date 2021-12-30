@@ -615,14 +615,14 @@ oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
     returns   : ;
     // ^ Determines the head of the chain
 
-    inputs    : attesterHashMapOld, chainNew, headOfChainId ;
+    inputs    : attesterHashMapOld, chainNewUpdated, headOfChainId ;
     feedback  :   ;
     operation : attestersPayment a10 a20 fee ;
     outputs   : ;
     returns   : ;
     // ^ Determines whether attesters from period (t-1) were correct and get rewarded
 
-    inputs    : chainNew, headOfChainId ;
+    inputs    : chainNewUpdated, headOfChainId ;
     feedback  :   ;
     operation : proposerPayment p0 reward ;
     outputs   :  ;
@@ -631,7 +631,7 @@ oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     :-----:
 
-    outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, chainNewUpdated, delayedTickerUpdate ;
     returns   :  ;
   |]
 

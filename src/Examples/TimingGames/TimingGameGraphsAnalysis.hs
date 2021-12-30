@@ -48,7 +48,7 @@ strategyProposer :: Kleisli Stochastic (Timer, Chain) Id
 strategyProposer = Kleisli (\(_,chain) -> pure $ determineHead chain)
 
 strategyProposer1 :: Kleisli Stochastic (Timer, Chain) Id
-strategyProposer1 = pureAction 2
+strategyProposer1 = pureAction 1
 
 
 -- vote for the head which has received the most votes?
@@ -61,7 +61,7 @@ strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::
 
 strategyTuple = strategyOneRound +:+ strategyOneRound
 
-strategyTuple' = strategyProposer1 ::- strategyAttester ::- strategyAttester ::- strategyProposer ::- strategyAttester ::- strategyAttester ::- Nil
+strategyTuple1 = strategyProposer1 ::- strategyAttester ::- strategyAttester ::- strategyProposer ::- strategyAttester ::- strategyAttester ::- Nil
 ---------------------
 -- Initial conditions
 
@@ -88,6 +88,7 @@ eqTwoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTu
 
 eqTest strategyOneRound initialContextLinearTest
 -}
+
 
 {-
 
