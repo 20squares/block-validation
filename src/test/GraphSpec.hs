@@ -22,6 +22,7 @@ spec = do
 
 testChain = edges [((1,2),(2,2)),((2,2),(3,1)),((3,1),(4,1))]
 
+testChain2 = edges [((1,2),(2,2)),((1,2),(4,0)),((2,2),(3,4)),((3,4),(5,0))]
 
 chainConstruction = describe
   "chain construction" $ do
@@ -104,9 +105,10 @@ proposed = describe
        shouldBe
          (proposedCorrect ((overlay testChain (edges [((2,1),(5,4)),((5,4),(6,3))]))) 6)
          True
-
-
-
+     it "proposed correctly forked chain (2)" $ do
+        shouldBe
+         (proposedCorrect testChain2 5)
+         True
 
 
 findHead = describe
@@ -123,15 +125,3 @@ findHead = describe
        shouldBe
          (determineHead (overlay testChain (edges [((2,2),(5,0))])))
          4
-
-
-testPastHeadId chain = vertexCount chain - 2
-
-pastHead chain pastHeadId = findVertexById chain pastHeadId
-
-currentHead chain headOfChain = findVertexById chain headOfChain
-
-onPathElems currentHead chain = preSet currentHead (closure chain)
-
-
-testChain2 = (overlay testChain (edges [((2,1),(5,4)),((5,4),(6,3))]))
