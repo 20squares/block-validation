@@ -87,11 +87,11 @@ proposed = describe
    "proposed correctly" $ do
      it "proposed correctly linear chain" $ do
        shouldBe
-         (proposedCorrect testChain 4)
+         (proposedCorrect testChain 3)
          True
      it "proposed incorrectly forked chain" $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,1),(5,4))]))) 5)
+         (proposedCorrect ((overlay testChain (edges [((2,1),(5,4))]))) 4)
          False
      it "proposed incorrectly forked chain (2)" $ do
        shouldBe

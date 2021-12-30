@@ -11,6 +11,7 @@
 
 module Examples.TimingGames.GraphGames.Internal where
 
+-- TODO Put proposers' decisions also in a map; to have access to earlier player ids
 -- DONE Simplify find vertex by id, comes up at several points
 -- DONE Test graph functions
 -- DONE Extend it towards another proposer game following the initial one
@@ -154,9 +155,11 @@ type Player = String
 type Vote = Int
 type Id    = Int
 type Timer = Int
+type Weight = Int
 
 -- The chain is represented by the edges (Blocks) and vertices (Which attester voted for that Block to be the head)
 type Chain = Relation (Id,Vote)
+type WeightedChain = Relation (Id,Weight)
 
 ------------------------
 -- 1 Auxiliary functions
@@ -206,36 +209,29 @@ transformTicker 12 = 0
 transformTicker x  = x + 1
 
 
--- Find the current head of a chain according to GHOST
--- FIXME is the calculation actually correct? Needs to include all children along the path, no. CHECK
+-- find the head of the chain
 determineHead :: Chain -> Id
 determineHead chain =
-  let root = findRoot chain
-      in fst $ findHead chain root
+  let allBranches = findBranches chain
+      weightedBranches = S.map (findPath chain) allBranches
+      (weightMax,idMax) = S.findMax $ S.map (\(x,y) -> (y,x)) weightedBranches
+      in idMax
   where
-      -- Finds the root for a chain
-      findRoot :: Chain -> (Id,Vote)
-      findRoot chain =
-        let adjLs = adjacencyList chain
-            ls    = vertexList chain
-            -- FIXME head
-            in head $ findRoots ls adjLs
-        where
-          findRoots :: Eq a => [a] -> [(a,[a])] -> [a]
-          findRoots [] ls     = []
-          findRoots (x:xs) ls =
-            if null $ filter (\(y,ys) -> elem x ys) ls
-              then x : findRoots xs ls
-              else findRoots xs ls
-      -- Given a chain and a starting node, finds the head with the most weights along the path
-      -- FIXME head
-      findHead :: Chain -> (Id,Vote) -> (Id,Vote)
-      findHead chain root =
-        if S.null nextVertexSet
-            then root
-            else let (vote,id) = S.findMax $ S.map (\(x,y) -> (y,x)) nextVertexSet
-                    in findHead chain (id,vote)
-        where nextVertexSet = postSet root chain
+    -- find all the branches of a chain
+    findBranches :: Chain  -> S.Set (Id,Vote)
+    findBranches chain' =
+      let  vertexSetChain   = vertexSet chain'
+           transChain = transitiveClosure chain'
+           setPreSet = S.unions $ S.map (flip preSet transChain) vertexSetChain
+           in S.difference vertexSetChain setPreSet
+    -- find all the paths from each branch to the root of the chain
+    findPath :: Chain -> (Id, Vote) -> (Id, Weight)
+    findPath chain' (i,v) =
+      let elementsOnPath = preSet (i,v) transitiveChain
+          transitiveChain = transitiveClosure chain'
+          weight = S.foldr (\(_,j) -> (+) j) 0 elementsOnPath
+          in (i,weight + v)
+          -- ^ NOTE the value of the last node itself is added as well
 
 -- Is the node the attester voted for on the path to the latest head?
 -- FIXME player name, id not given
