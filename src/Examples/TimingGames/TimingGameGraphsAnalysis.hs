@@ -30,13 +30,13 @@ initialMapTest ::  M.Map Player Id
 initialMapTest = M.fromList [("a10",3),("a20",3)]
 
 
-contextTest :: (Timer,Timer,Chain,M.Map Player Id, Id)
-contextTest = (0,0,initialChainLinear,initialMapTest,3)
+contextTest :: (Timer,Timer,Chain,M.Map Player Id)
+contextTest = (0,0,initialChainLinear,initialMapTest)
 
 initialContextLinearTest :: StochasticStatefulContext
-                       (Timer, Timer, Relation (Id, Vote), M.Map Player Id, Id)
+                       (Timer, Timer, Relation (Id, Vote), M.Map Player Id)
                        ()
-                       (Timer, Stochastic Int, Chain, M.Map Player Id, Id)
+                       (Timer, Stochastic Int, Chain, M.Map Player Id)
                        ()
 initialContextLinearTest = StochasticStatefulContext (pure ((),contextTest)) (\_ _ -> pure ())
 -----------------------
@@ -75,11 +75,11 @@ initialMap = initialMapTest
 
 -- Initial context for linear chain, all initiated at the same ticker time, and an empty hashMap
 initialContextLinear :: StochasticStatefulContext
-                          (Timer, Timer, Timer, Timer, Chain, M.Map Player Id, Id)
+                          (Timer, Timer, Timer, Timer, Chain, M.Map Player Id)
                           ()
                           ()
                           ()
-initialContextLinear = StochasticStatefulContext (pure ((),(0,0,0,0,initialChainLinear,initialMap,3))) (\_ _ -> pure ())
+initialContextLinear = StochasticStatefulContext (pure ((),(0,0,0,0,initialChainLinear,initialMap))) (\_ _ -> pure ())
 
 -------------------
 -- Scenarios Tested
