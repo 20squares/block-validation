@@ -89,7 +89,7 @@ eqTwoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTu
 eqTest strategyOneRound initialContextLinearTest
 -}
 
-
+test = edges [((1,2),(2,2)),((1,2),(4,0)),((2,2),(3,4))]
 
 {-
 

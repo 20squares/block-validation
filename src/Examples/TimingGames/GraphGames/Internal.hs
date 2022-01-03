@@ -156,7 +156,7 @@ type Vote = Int
 type Id    = Int
 type Timer = Int
 type Weight = Int
-
+type AttesterMap = M.Map Player Id
 -- The chain is represented by the edges (Blocks) and vertices (Which attester voted for that Block to be the head)
 type Chain = Relation (Id,Vote)
 type WeightedChain = Relation (Id,Weight)
@@ -275,8 +275,8 @@ delayMessage (actualTimer, delayedTimer, oldChain, newChain)
   | otherwise                  = newChain
 
 -- transform list to Map; done here due to restrictions of DSL
-fromListToMap :: [(Player,Id)] -> M.Map Player Id
-fromListToMap = M.fromList
+newAttesterMap :: [(Player,Id)] -> AttesterMap -> AttesterMap
+newAttesterMap new old = M.union (M.fromList new) old
 
 ------------
 -- 2 Payoffs
@@ -490,13 +490,13 @@ attestersGroupDecision :: Player
                                 Kleisli Stochastic (Timer, Relation (Id, Vote), Chain) Int])
                             ('[[DiagnosticInfoBayesian (Timer, Relation (Id, Vote), Chain) Int],
                                 [DiagnosticInfoBayesian (Timer, Relation (Id, Vote), Chain) Int]])
-                            (Timer, Relation (Id, Vote), Chain)
+                            (Timer, Relation (Id, Vote), Chain, AttesterMap)
                             ()
-                            (M.Map Player Id, Chain)
+                            (AttesterMap, Chain)
                             ()
 attestersGroupDecision name1 name2 = [opengame|
 
-    inputs    : ticker,chainNew,chainOld ;
+    inputs    : ticker,chainNew,chainOld, attesterHashMapOld ;
     feedback  :   ;
 
     :-----:
@@ -515,9 +515,9 @@ attestersGroupDecision name1 name2 = [opengame|
     returns   : ;
     // ^ Attester2 makes a decision
 
-    inputs    : [(name1,attested1),(name2,attested2)] ;
+    inputs    : [(name1,attested1),(name2,attested2)], attesterHashMapOld ;
     feedback  : ;
-    operation : forwardFunction fromListToMap ;
+    operation : forwardFunction $ uncurry newAttesterMap ;
     outputs   : attesterHashMap ;
     returns   : ;
     // ^ Creates a map of which attester voted for which index
@@ -598,7 +598,7 @@ oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
     returns   : ;
     // ^ Proposer makes a decision, a new hash is proposed
 
-    inputs    : ticker,chainNew,chainOld ;
+    inputs    : ticker,chainNew,chainOld, attesterHashMapOld;
     feedback  :   ;
     operation : attestersGroupDecision a11 a21 ;
     outputs   : attesterHashMapNew, chainNewUpdated ;
