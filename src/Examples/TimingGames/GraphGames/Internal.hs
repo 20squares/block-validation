@@ -255,7 +255,7 @@ proposedCorrect :: Chain -> Bool
 proposedCorrect chain  =
   let currentHeadId = determineHead chain
       currentHead   = findVertexById chain currentHeadId
-      oldDecisionProposer = vertexCount chain
+      oldDecisionProposer = vertexCount chain - 1
       chainClosure  = closure chain
       onPathElems   = preSet currentHead chainClosure
       pastHead      = findVertexById chain oldDecisionProposer
@@ -662,33 +662,47 @@ repeatedGame  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
   |]
 
 
--- Repeated game
-twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
+-- Two round game
+-- Follows spec for two players
+twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
-    inputs    : ticker1,delayedTicker1,ticker2,delayedTicker2, chainOld, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
 
     :-----:
 
-    inputs    : ticker1,delayedTicker1, chainOld, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
-    operation : repeatedGame p0 p1 a10 a20 a11 a21 reward fee ;
-    outputs   : tickerNew, delayedTickerUpdate, chainNew, attesterHashMapNew ;
+    operation : oneRound p0 p1 a10 a20 a11 a21 reward fee ;
+    outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
     returns   :  ;
 
-    inputs    : ticker2,delayedTicker2, chainNew, attesterHashMapNew ;
+    inputs    : ticker;
     feedback  :   ;
-    operation : repeatedGame p1 p2 a11 a21 a12 a22 reward fee ;
-    outputs   :  tickerNew2, delayedTickerUpdate2, chainNew2, attesterHashMapNew2 ;
+    operation : forwardFunction transformTicker ;
+    outputs   : tickerNew;
+    returns   : ;
+
+    inputs    : ticker,delayedTicker, chainNew, attesterHashMapNew ;
+    // NOTE ticker time is ignored here
+    feedback  :   ;
+    operation : oneRound p1 p2 a11 a21 a12 a22 reward fee ;
+    outputs   : attesterHashMapNew2, chainNew2, delayedTickerUpdate2 ;
     returns   :  ;
+
+    inputs    : tickerNew;
+    feedback  :   ;
+    operation : forwardFunction transformTicker ;
+    outputs   : tickerNew2;
+    returns   : ;
+
+
 
     :-----:
 
-    outputs   :  ;
+    outputs   : tickerNew2, delayedTickerUpdate2, chainNew2, attesterHashMapNew2 ;
     returns   :  ;
   |]
-
-
 
 
 ----------------

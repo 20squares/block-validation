@@ -10,7 +10,7 @@ import           Algebra.Graph.Relation
 import qualified Data.Map.Strict      as M
 
 import           Engine.Engine
-import           Examples.TimingGames.GraphGames.InternalDebug
+import           Examples.TimingGames.GraphGames.Internal
 
 -------------------------
 -- Equilibrium definition
