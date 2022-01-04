@@ -12,6 +12,7 @@ module Engine.BayesianGames
   , Agent(..)
   , dependentDecision
   , dependentEpsilonDecision
+  , debuggingAgent
   , fromLens
   , fromFunctions
   , nature
@@ -74,6 +75,7 @@ deviationsInContext epsilon name x theta strategy u ys
         (optimalPlay, optimalPayoff) = maximumBy (comparing snd) [(y, u y) | y <- ys]
 
 
+
 dependentDecision :: (Eq x, Show x, Ord y, Show y) => String -> (x -> [y]) -> StochasticStatefulBayesianOpenGame '[Kleisli Stochastic x y] '[[DiagnosticInfoBayesian x y]] x () y Double
 dependentDecision name ys = OpenGame {
   play = \(a ::- Nil) -> let v x = do {y <- runKleisli a x; return ((), y)}
@@ -102,8 +104,32 @@ dependentEpsilonDecision epsilon name ys = OpenGame {
                   in deviationsInContext epsilon name x theta strategy u (ys x)
               | (theta, x) <- support h]) ::- Nil }
 
+------------------------------------------------
+-- Debugging agent
+-- Information to be displayed by the dummy agent
+dummyInContext :: (Show x, Ord x, Show theta)
+                    => Agent -> x -> theta -> [DiagnosticInfoBayesian x x]
+dummyInContext  name x theta
+  = [DiagnosticInfoBayesian
+         { equilibrium = False
+         , player = name
+         , payoff = 0
+         , optimalMove = x
+         , optimalPayoff = 0
+         , context = \_ -> 0
+         , state = x
+         , unobservedState = show theta
+         , strategy = playDeterministically x}]
 
 
+-- Dummy agent to be inserted to display information
+debuggingAgent :: (Ord x, Eq x, Show x) => String ->  StochasticStatefulBayesianOpenGame '[] '[[DiagnosticInfoBayesian x x]] x () () ()
+debuggingAgent name = OpenGame {
+  play = \Nil -> StochasticStatefulOptic (\_ -> return ((),())) (\_ _ -> return ()),
+  evaluate = \Nil (StochasticStatefulContext h k) ->
+     (concat [dummyInContext name x theta | (theta, x) <- support h]) ::- Nil }
+
+----------------------------------------------------
 -- Support functionality for constructing open games
 fromLens :: (x -> y) -> (x -> r -> s) -> StochasticStatefulBayesianOpenGame '[] '[] x s y r
 fromLens v u = OpenGame {

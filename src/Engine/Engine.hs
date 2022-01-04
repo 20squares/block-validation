@@ -12,6 +12,7 @@ module Engine.Engine
   , Agent(..)
   , dependentDecision
   , dependentEpsilonDecision
+  , debuggingAgent
   , fromFunctions
   , fromLens
   , uniformDist
