@@ -40,7 +40,6 @@ library:
     - Examples.Markov.RepeatedPD
     - Examples.Markov.RepeatedPDNonState
     - Examples.Markov.TwoStageMarkov
-    - Examples.TimingGames.TimingGame2MultiPlayersV2
     - Examples.TimingGames.GraphGames.Internal
     - Examples.TimingGames.TimingGameGraphsAnalysis
     - Graphics

@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.TimingGames.TimingGameGraphsAnalysis where
+module Examples.TimingGames.TimingGameGraphsAnalysisDebug where
 
 
 import           Algebra.Graph.Relation

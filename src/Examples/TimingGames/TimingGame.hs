@@ -9,48 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.TimingGames.TimingGame2 where
-
-
--- TODO Implement the renumeration of the proposer for later periods
--- TODO Currently, the proposer is also not affected by not proposing something; only the attester suffers
--- DONE Check the initial state conditions make sense
--- DONE Test that the payoff version actually works
--- DONE Testing of equilibrium
--- DONE Can we remodel this game as to use the state hack as well?
--- DONE Do we need more attesters to make that model relevant?
--- DONE What is the payoff for the sender?
--- DONE Check strategies and explore game
-
-{--
-
-We simplify the Proof-of-Stake (PoS) Ethereum protocol:
-
-Time is divided in slots of 12 seconds.
-
-A block proposer is expected to send their block B
-
-at t=0
-seconds into the first slot.
-At t=4
-seconds into the slot, an attester is expected to publish their view of the chain v: the hash of B if it is available, or an empty vote ∅
-otherwise.
-At t=12
-seconds into the slot (i.e., t=0 into the next slot), the game is repeated: a block proposer is expected to send a block B′, which contains v if v
-was received in time by the proposer.
-The attester is rewarded if their vote is included in block B′
-and is correct, i.e., voted ∅ if B′ did not build on B, and hash(B)
-
-    otherwise.
-
-Propagation times follow some distribution F
-: with probability F(t), a message sent is received after delay t. Although the protocol dictates sending the vote after 4 seconds, there is a weak incentive to wait a little longer in case B is delayed for some reason and is received in time for B′ to build on it, albeit too late for attesters who voted at t=4 to have seen it.-}
-
-
--------------------------------------------------------------------------------------
--- This game is using the State implementation in order to "send" payoffs at distance
-
-
+module Examples.TimingGames.TimingGame where
 
 import Engine.Engine
 import Preprocessor.Preprocessor
@@ -61,6 +20,13 @@ import           Control.Monad.State  hiding (state,void)
 import qualified Control.Monad.State  as ST
 import           Data.List
 import           Data.Tuple.Extra (uncurry3)
+
+
+
+---------------------------------------------------
+-- Simple implementation of protocol with one mover
+-- NOTE This game is using the State implementation
+-- in order to "send" payoffs at distance
 
 ----------
 -- A Model
