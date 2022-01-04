@@ -255,7 +255,7 @@ proposedCorrect :: Chain -> Bool
 proposedCorrect chain  =
   let currentHeadId = determineHead chain
       currentHead   = findVertexById chain currentHeadId
-      oldDecisionProposer = vertexCount chain
+      oldDecisionProposer = vertexCount chain - 1
       chainClosure  = closure chain
       onPathElems   = preSet currentHead chainClosure
       pastHead      = findVertexById chain oldDecisionProposer
