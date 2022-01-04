@@ -743,7 +743,6 @@ twoRoundGame2 p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 ----------------
 -- Continuations
 -- extract continuation
--- extract continuation
 extractContinuation :: StochasticStatefulOptic
                          (Timer, Timer, Chain, M.Map Player Id)
                          ()
