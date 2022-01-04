@@ -87,24 +87,24 @@ proposed = describe
    "proposed correctly" $ do
      it "proposed correctly linear chain" $ do
        shouldBe
-         (proposedCorrect testChain 3)
+         (proposedCorrect testChain)
          True
      it "proposed incorrectly forked chain" $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4))]))) 4)
+         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4))]))))
          False
      it "proposed incorrectly forked chain (2)" $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4))]))) 3)
+         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4))]))))
          False
      it "proposed correctly forked chain " $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4)),((5,4),(6,3))]))) 6)
+         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4)),((5,4),(6,3))]))))
          True
      it "proposed correctly forked chain (2)" $ do
         shouldBe
-         (proposedCorrect testChain2 5)
-         True
+         (proposedCorrect testChain2)
+         False
 
 
 findHead = describe
