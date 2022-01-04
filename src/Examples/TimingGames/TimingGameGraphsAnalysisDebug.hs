@@ -38,13 +38,9 @@ strategyProposer1 = pureAction 1
 strategyAttester :: Kleisli Stochastic (Timer, Chain, Chain) Id
 strategyAttester = Kleisli (\(_,chainNew,_) -> pure $ determineHead chainNew)
 
--- dummy strat for investigating output
-strategyDummy :: Kleisli Stochastic Double Int
-strategyDummy = pureAction 0
-
 -- Combining strategies
-strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::- strategyDummy ::- Nil
-strategyOneRound1 = strategyProposer1 ::- strategyAttester ::- strategyAttester ::- strategyDummy ::- Nil
+strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::-  Nil
+strategyOneRound1 = strategyProposer1 ::- strategyAttester ::- strategyAttester ::-  Nil
 
 
 strategyTuple = strategyOneRound +:+ strategyOneRound

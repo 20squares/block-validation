@@ -525,9 +525,9 @@ oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     inputs    : value ;
     feedback  :   ;
-    operation : dependentDecision "testValue" (const [0,1]) ;
-    outputs   : discard ;
-    returns   : 0 ;
+    operation : debuggingAgent "value for Proposer" ;
+    outputs   :  ;
+    returns   :  ;
 
     :-----:
 
