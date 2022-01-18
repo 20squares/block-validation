@@ -69,6 +69,7 @@ dependencies:
     - containers
     - algebraic-graphs
     - NumInstances
+    - generic-random
 
 executables:
   open-games-exe:
@@ -100,3 +101,16 @@ tests:
       - base
       - hspec
       - QuickCheck
+
+  eq-tests:
+    buildable: True
+    main: Equilibrium
+    source-dirs: test
+    dependencies:
+      - open-games-hs
+      - template-haskell
+      - base
+      - hspec
+      - QuickCheck
+      - generic-random
+

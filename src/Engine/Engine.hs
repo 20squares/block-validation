@@ -24,6 +24,7 @@ module Engine.Engine
   , DiagnosticInfoBayesian(..)
   , generateOutput
   , generateIsEq
+  , generateEquilibrium
   , OpenGame(..)
   , lift
   , reindex
