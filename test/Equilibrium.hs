@@ -11,6 +11,9 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
+
+module Equilibrium where 
+
 import           Examples.TimingGames.GraphGames.Internal
 import           Examples.TimingGames.TimingGameGraphsAnalysis
 import           Engine.Engine
@@ -24,7 +27,8 @@ import           Test.QuickCheck
 import Examples.Decision
 
 
-main = undefined
+
+main = verboseCheck prop_eqForallInitialChains
 
 
 
@@ -47,22 +51,16 @@ drawChain :: Gen [(Id,Vote)] -> Gen Chain
 drawChain = fmap path
 
 
+-- checkEq condition on game given an initial chain
+eqForallInitialChains initialChain = 
+  checkEq initialChain  == True
+  where
+   checkEq initialChain =  generateEquilibrium $  evaluate (twoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2) strategyTuple context
+   context =  StochasticStatefulContext (pure ((),(0,0,initialChain,initialMap))) (\_ _ -> pure ())
+   initialMap = M.fromList [("a10",3),("a20",3)]
 
-test1 initialChain =  generateEquilibrium $  evaluate (twoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2) strategyTuple context
-  where context =  StochasticStatefulContext (pure ((),(0,0,test2,initialMap))) (\_ _ -> pure ())
-        initialMap = M.fromList [("a10",3),("a20",3)]
-
-test2 :: Chain
-test2 = path [(1,2),(2,2),(3,2)] 
-
---test3 initialChain = foldrL and True (test1 initialChain) 
---foldrL and True $
-
--- fmap into Bool, fold into Bool and then extract?
-prop_eqForallInitialChains initialChain =
-  True  == True
-  where context =  StochasticStatefulContext (pure ((),(0,0,initialChain,initialMap))) (\_ _ -> pure ())
-        initialMap = M.fromList [("a10",3),("a20",3)]
+-- construct testable property
+prop_eqForallInitialChains = forAll (drawChain $ listOfVertices 1) eqForallInitialChains
  
 
 
