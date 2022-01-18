@@ -28,8 +28,9 @@ import Examples.Decision
 
 
 
-main = verboseCheck prop_eqForallInitialChains
-
+main = do
+  verboseCheck prop_eqForallInitialChains
+  verboseCheck (prop_noEqDeviatingProp initialChainLinear)
 
 
 ------------------------------------------------
@@ -39,6 +40,13 @@ main = verboseCheck prop_eqForallInitialChains
 -- draw a random vertice with increasing number given the state
 drawNode :: Id -> Gen (Id,Vote)
 drawNode id = (,) <$> choose (id,id) <*> arbitrary
+
+
+-- draw an id for the chain at hand
+drawId :: Chain -> Gen Id
+drawId chain =
+  let size = vertexCount chain
+      in choose (1,size - 1)
 
 -- create a list of vertices with increasing id
 listOfVertices :: Arbitrary (Id,Vote) => Id -> Gen [(Id,Vote)]
@@ -62,14 +70,35 @@ eqForallInitialChains initialChain =
 -- construct testable property
 prop_eqForallInitialChains = forAll (drawChain $ listOfVertices 1) eqForallInitialChains
  
-
-
-
-
-
-
 ------------------------------------------------
 -- Explore random strategies different than
 -- following the head
 
+-- Strategy for proposer
+strategyProposerDeviate :: Id ->  (Kleisli Stochastic (Timer, Chain) Id)
+strategyProposerDeviate id = pureAction id
+
+-- Combining strategies for a single stage
+strategyOneRoundDeviate id = strategyProposerDeviate id ::- strategyAttester ::- strategyAttester ::- Nil
+
+-- Combining strategies for several stages
+strategyTupleDeviate id = strategyOneRoundDeviate id +:+ strategyOneRound
+
+-- Extract non-equilibrium for proposer
+noEqDeviatingProp initialChain id=
+  checkEq == False
+  where
+   checkEq = generateEquilibrium $  evaluate (twoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2) (strategyTupleDeviate id) context
+   context =  StochasticStatefulContext (pure ((),(0,0,initialChain,initialMap))) (\_ _ -> pure ())
+   initialMap = M.fromList [("a10",3),("a20",3)]
+
+
+-- construct testable property for proposer strategy
+prop_noEqDeviatingProp initialChain = forAll (drawId initialChain) (noEqDeviatingProp initialChain)
+
+--prop_eqForallInitialChains id = forAll (drawChain $ listOfVertices 1) eqForallInitialChains
+--  checkEq initialChain  == True
+--  where
+   
+--differingStrategy :: Chain -> 
 
