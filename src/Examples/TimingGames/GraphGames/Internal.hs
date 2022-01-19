@@ -1,5 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE DatatypeContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -96,7 +94,7 @@ addToChainWait chain (Send id)  = addToChain chain id
 alternativesProposer :: (Timer, Chain) -> [Send Id]
 alternativesProposer (_,chain) =
   let noVertices = vertexCount chain
-      in DoNotSend : fmap Send [1,noVertices]
+      in DoNotSend : fmap Send [1..noVertices]
 
 -- Find vertex in a chain given unique id
 -- FIXME What if non-existing id?

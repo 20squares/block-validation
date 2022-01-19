@@ -18,6 +18,7 @@ spec = do
   updateVertex
   attested
   proposed
+  proposerAlternatives
   findHead
 
 testChain = edges [((1,2),(2,2)),((2,2),(3,1)),((3,1),(4,1))]
@@ -105,6 +106,22 @@ proposed = describe
         shouldBe
          (proposedCorrect testChain2)
          False
+
+proposerAlternatives = describe
+    "proposer's alternatives are constructed correctly" $ do
+      it "correct alternatives linear chain" $ do
+        shouldBe
+          (alternativesProposer (0,testChain))
+          [DoNotSend, Send 1, Send 2, Send 3, Send 4]
+      it "correct new chain is constructed when send decision" $ do
+        shouldBe
+          (addToChainWait testChain (Send 4))
+          (path [(1,2),(2,2),(3,1),(4,1),(5,0)])
+      it "correct new chain is constructed when no-send decision" $ do
+        shouldBe
+          (addToChainWait testChain (DoNotSend))
+          (path [(1,2),(2,2),(3,1),(4,1)])
+
 
 
 findHead = describe
