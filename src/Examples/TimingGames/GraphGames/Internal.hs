@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE DatatypeContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -8,6 +10,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module Examples.TimingGames.GraphGames.Internal where
 
@@ -32,9 +35,6 @@ import           Data.Tuple.Extra (uncurry3)
 -- TODO For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?
 
 
-
-
-
 ----------
 -- A Model
 ----------
@@ -43,7 +43,7 @@ import           Data.Tuple.Extra (uncurry3)
 -- 0 Types
 ----------
 -- HashBlock choice
-data Send = Send | DoNotSend
+data (Eq a, Ord a, Show a) => Send a = Send a | DoNotSend
    deriving (Eq,Ord,Show)
 
 -- A view on the previous information
@@ -83,6 +83,20 @@ addToChain chain id  =
       -- ^ connect the vertex with the relevant id to new node with label new hash
       in overlay chain newConnection
       -- ^ update the connection of the new chain
+
+-- Given a previous chain and the decision to append or to wait,
+-- produce a new chain
+addToChainWait :: Chain -> Send Id -> Chain
+addToChainWait chain DoNotSend  = chain
+-- ^ Keep the old chain
+addToChainWait chain (Send id)  = addToChain chain id
+-- ^ Append block to old chain (create new chain)
+
+-- Produces alternatives for proposer
+alternativesProposer :: (Timer, Chain) -> [Send Id]
+alternativesProposer (_,chain) =
+  let noVertices = vertexCount chain
+      in DoNotSend : fmap Send [1,noVertices]
 
 -- Find vertex in a chain given unique id
 -- FIXME What if non-existing id?
@@ -192,8 +206,7 @@ proposerPayoff reward verified  = if verified then reward else 0
 ---------------------
 -- 1 Game blocks
 
--- Generate hash given previous information
--- At time t=0 a new string is generated; otherwise the same old string is still used
+-- Given old has and chosen id, add a block
 addBlock = [opengame|
 
     inputs    : chainOld, chosenId ;
@@ -212,9 +225,30 @@ addBlock = [opengame|
     returns   :          ;
   |]
 
--- A proposer observes the ticker and decides to send the block or not
--- If the decision is to send, the exogenous block is sent, otherwise the empty string
--- There is a delay built in, determined at t=0. If true, the new message is not sent but the old message is until the delay if over.
+-- Given the decision by the proposer to either wait or to send a head
+-- the "new" chain is created -- which means either the same as before
+-- or the actually appended version
+addBlockWait = [opengame|
+
+    inputs    : chainOld, chosenIdOrWait ;
+    feedback  :   ;
+
+    :-----:
+    inputs    : chainOld, chosenIdOrWait ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry addToChainWait ;
+    outputs   : chainNew ;
+    returns   : ;
+
+    :-----:
+
+    outputs   : chainNew ;
+    returns   :          ;
+  |]
+
+
+  
+-- A proposer observes the ticker and decides to append the block to a node
 proposer  name = [opengame|
 
     inputs    : ticker, delayedTicker, chainOld;
@@ -258,6 +292,54 @@ proposer  name = [opengame|
     returns   :  ;
   |]
 
+-- A proposer observes the ticker and decides to append the block to a node OR not
+-- In other words, the proposer can wait to append the block
+proposerWait  name = [opengame|
+
+    inputs    : ticker, delayedTicker, chainOld;
+    feedback  :   ;
+
+    :-----:
+    inputs    : ticker, chainOld ;
+    feedback  :   ;
+    operation : dependentDecision name  alternativesProposer;
+    outputs   : decisionProposer ;
+    returns   : 0;
+    // ^ decision which hash to send forward (latest element, or second latest element etc.)
+    // ^ NOTE fix reward to zero; it is later updated where it is evaluated as correct or false
+
+    inputs    : chainOld, decisionProposer ;
+    feedback  :   ;
+    operation : addBlockWait ;
+    outputs   : chainNew;
+    returns   : ;
+    // ^ creates new hash at t=0
+
+
+    inputs    : ticker, delayedTicker ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry delaySendTime ;
+    outputs   : delayedTickerUpdate ;
+    returns   : ;
+    // ^ determines whether message is delayed or not
+
+    inputs    : ticker, delayedTicker, chainOld, chainNew ;
+    feedback  :   ;
+    operation : forwardFunction $ delayMessage ;
+    outputs   : messageChain ;
+    returns   : ;
+    // ^ for a given timer, determines whether the block is decisionProposer or not
+
+    :-----:
+
+    outputs   : messageChain, delayedTickerUpdate ;
+    // ^ newchain (if timer allows otherwise old chain), update on delayedticker, decisionProposer
+    returns   :  ;
+  |]
+
+
+
+  
 -- The attester observes the sent hash, the old hash, the timer, and can then decide which node to attest as the head
 attester name = [opengame|
 
@@ -535,6 +617,55 @@ oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
     returns   :  ;
   |]
 
+-- One round game with proposer who can wait
+oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
+
+    inputs    : ticker, delayedTicker, chainOld, attesterHashMapOld  ;
+    // ^ chainOld is the old hash
+    feedback  :   ;
+
+    :-----:
+    inputs    : ticker,delayedTicker,chainOld ;
+    feedback  :   ;
+    operation : proposerWait p1;
+    outputs   : chainNew, delayedTickerUpdate ;
+    returns   : ;
+    // ^ Proposer makes a decision, a new hash is proposed
+
+    inputs    : ticker,chainNew,chainOld, attesterHashMapOld;
+    feedback  :   ;
+    operation : attestersGroupDecision a11 a21 ;
+    outputs   : attesterHashMapNew, chainNewUpdated ;
+    returns   :  ;
+    // ^ Attesters make a decision
+
+    inputs    : chainNewUpdated ;
+    feedback  :   ;
+    operation : determineHeadOfChain ;
+    outputs   : headOfChainId ;
+    returns   : ;
+    // ^ Determines the head of the chain
+
+    inputs    : attesterHashMapOld, chainNewUpdated, headOfChainId ;
+    feedback  :   ;
+    operation : attestersPayment a10 a20 fee ;
+    outputs   : ;
+    returns   : ;
+    // ^ Determines whether attesters from period (t-1) were correct and get rewarded
+
+    inputs    : chainNewUpdated ;
+    feedback  :   ;
+    operation : proposerPayment p0 reward ;
+    outputs   :  ;
+    returns   : ;
+    // ^ This determines whether the proposer from period (t-1) was correct and triggers payments accordingly
+
+    :-----:
+
+    outputs   : attesterHashMapNew, chainNewUpdated, delayedTickerUpdate ;
+    returns   :  ;
+  |]
+
 
 
 -- Repeated game
@@ -562,6 +693,33 @@ repeatedGame  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
     outputs   : tickerNew, delayedTickerUpdate, chainNew, attesterHashMapNew ;
     returns   :  ;
   |]
+
+-- Repeated game with proposer who can wait
+repeatedGameWait  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
+
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
+    feedback  :   ;
+
+    :-----:
+
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
+    feedback  :   ;
+    operation : oneRoundWait p0 p1 a10 a20 a11 a21 reward fee ;
+    outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
+    returns   :  ;
+
+    inputs    : ticker;
+    feedback  :   ;
+    operation : forwardFunction transformTicker ;
+    outputs   : tickerNew;
+    returns   : ;
+
+    :-----:
+
+    outputs   : tickerNew, delayedTickerUpdate, chainNew, attesterHashMapNew ;
+    returns   :  ;
+  |]
+
 
 
 -- Two round game
@@ -606,7 +764,50 @@ twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
     returns   :  ;
   |]
 
+-- Two round game with proposer who can wait
+-- Follows spec for two players
+twoRoundGameWait  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
+    feedback  :   ;
+
+    :-----:
+
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
+    feedback  :   ;
+    operation : oneRoundWait p0 p1 a10 a20 a11 a21 reward fee ;
+    outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
+    returns   :  ;
+
+    inputs    : ticker;
+    feedback  :   ;
+    operation : forwardFunction transformTicker ;
+    outputs   : tickerNew;
+    returns   : ;
+
+    inputs    : ticker,delayedTicker, chainNew, attesterHashMapNew ;
+    // NOTE ticker time is ignored here
+    feedback  :   ;
+    operation : oneRoundWait p1 p2 a11 a21 a12 a22 reward fee ;
+    outputs   : attesterHashMapNew2, chainNew2, delayedTickerUpdate2 ;
+    returns   :  ;
+
+    inputs    : tickerNew;
+    feedback  :   ;
+    operation : forwardFunction transformTicker ;
+    outputs   : tickerNew2;
+    returns   : ;
+
+
+
+    :-----:
+
+    outputs   : tickerNew2, delayedTickerUpdate2, chainNew2, attesterHashMapNew2 ;
+    returns   :  ;
+  |]
+
+
+  
 ----------------
 -- Continuations
 -- extract continuation
