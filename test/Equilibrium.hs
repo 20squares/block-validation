@@ -30,6 +30,7 @@ import Examples.Decision
 
 main = do
   verboseCheck prop_eqForallInitialChains
+  verboseCheck prop_eqForallInitialChainsWait
   verboseCheck (prop_noEqDeviatingProp initialChainLinear)
 
 
@@ -69,7 +70,19 @@ eqForallInitialChains initialChain =
 
 -- construct testable property
 prop_eqForallInitialChains = forAll (drawChain $ listOfVertices 1) eqForallInitialChains
+
+---- checkEq condition on game given an initial chain
+eqForallInitialChainsWait initialChain = 
+  checkEq initialChain  == True
+  where
+   checkEq initialChain =  generateEquilibrium $  evaluate (twoRoundGameWait "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2) strategyTupleWait context
+   context =  StochasticStatefulContext (pure ((),(0,0,initialChain,initialMap))) (\_ _ -> pure ())
+   initialMap = M.fromList [("a10",3),("a20",3)]
+
+-- construct testable property
+prop_eqForallInitialChainsWait = forAll (drawChain $ listOfVertices 1) eqForallInitialChains
  
+  
 ------------------------------------------------
 -- Explore random strategies different than
 -- following the head
