@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -38,9 +37,13 @@ main = do
 -- Explore tests of given strategies relative to
 -- random starting conditions, i.e. chains
 
+-- draw only positive numbers
+genPos :: Gen Int
+genPos = abs `fmap` (arbitrary :: Gen Int) `suchThat` (> 0)
+
 -- draw a random vertice with increasing number given the state
 drawNode :: Id -> Gen (Id,Vote)
-drawNode id = (,) <$> choose (id,id) <*> arbitrary
+drawNode id = (,) <$> choose (id,id) <*> genPos
 
 
 -- draw an id for the chain at hand
@@ -108,10 +111,4 @@ noEqDeviatingProp initialChain id=
 
 -- construct testable property for proposer strategy
 prop_noEqDeviatingProp initialChain = forAll (drawId initialChain) (noEqDeviatingProp initialChain)
-
---prop_eqForallInitialChains id = forAll (drawChain $ listOfVertices 1) eqForallInitialChains
---  checkEq initialChain  == True
---  where
-   
---differingStrategy :: Chain -> 
 
