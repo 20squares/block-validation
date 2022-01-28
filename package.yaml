@@ -6,7 +6,6 @@ author: Jules Hedges, André Videla, Philipp Zahn & other contributors
 maintainer: philipp.zahn@protonmail
 copyright: Jules Hedges, André Videla, Philipp Zahn & other contributors
 license: AGPL
-github: https://github.com/philipp-zahn/open-games-hs
 extra-source-files:
 - README.md
 
@@ -28,10 +27,22 @@ library:
     - Preprocessor.THSyntax
     - Preprocessor.TH
     - Preprocessor.Types
-    - Examples.Bimatrix
+    - Preprocessor.Preprocessor
+    - Examples.SimultaneousMoves
     - Examples.Bayesian
     - Examples.Decision
-    - Examples.Sequential
+    - Examples.SequentialMoves
+    - Examples.Auctions.AuctionSupportFunctions
+    - Examples.Auctions.ChooseReservePrice
+    - Examples.Auctions.DutchAuction
+    - Examples.Auctions.SequentialAuction
+    - Examples.Auctions.SimultaneousBidAuction
+    - Examples.Markov.RepeatedPD
+    - Examples.Markov.RepeatedPDNonState
+    - Examples.Markov.TwoStageMarkov
+    - Examples.Markov.TestSimpleMonteCarlo
+    - Examples.Markov.TestSimpleMonteCarlo.Continuation
+    - Graphics
 
 dependencies:
     - base >=4.7 && <5
@@ -46,6 +57,20 @@ dependencies:
     - QuickCheck
     - comonad
     - haskeline
+    - hashmap
+    - hashable
+    - extra
+    - fgl
+    - graphviz
+    - lens
+    - typed-process
+    - mwc-random
+    - random
+    - vector
+    - monad-bayes
+    - criterion
+
+
 
 executables:
   open-games-exe:
@@ -57,17 +82,11 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - open-games-hs
-
-
-
-tests:
-  test-open-games:
-    main: THTests
-    source-dirs: tests
+  graphics:
+    main:                Main.hs
+    source-dirs:         graphics
     dependencies:
       - open-games-hs
+      - graphviz
       - template-haskell
-      - base
-      - probability
-      - hspec
-      - QuickCheck
+      - criterion

@@ -10,13 +10,16 @@ module Engine.Engine
   , liftStochasticForward
   , StochasticStatefulBayesianOpenGame(..)
   , Agent(..)
+  , Payoff(..)
   , dependentDecision
+  , dependentEpsilonDecision
   , fromFunctions
   , fromLens
   , uniformDist
   , distFromList
   , pureAction
   , playDeterministically
+  , discount
   , DiagnosticInfoBayesian(..)
   , generateOutput
   , generateIsEq
@@ -29,6 +32,10 @@ module Engine.Engine
   , Vector(..)
   , StochasticStatefulOptic(..)
   , StochasticStatefulContext(..)
+  , StochasticOptic(..)
+  , StochasticContext(..)
+  , MonadOptic(..)
+  , MonadContext(..)
   , Optic(..)
   , Precontext(..)
   , Context(..)
@@ -41,6 +48,8 @@ module Engine.Engine
   , FoldrL(..)
   , ConstMap(..)
   , SequenceList(..)
+  , Natural(..)
+  , IndexList(..)
   , type (+:+)
   , (+:+)
   , Kleisli(..)

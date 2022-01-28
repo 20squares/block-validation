@@ -1,69 +1,66 @@
-# Refactored version
+# Getting started with open games
 
-This repo is a refactored and simplified implementation on the basis of [this](https://github.com/jules-hedges/open-game-engine) version by Jules Hedges. 
+This tutorial is about how to install the tools to use open games and how to master the language
+of open games to write powerful games and analyze them.
 
-It will serve as a basis for several specialized applications. 
+This repo is a refactored and simplified implementation on the basis of [this](https://github.com/jules-hedges/open-game-engine) version by Jules Hedges.
+
+If you have questions, drop me (Philipp) a [mail](mailto:philipp.zahn@unisg.ch)!
+
+This repo is work in progress. Expect changes at any time!
+
+# What are open games?
+
+_Open games_ are a mathematical structure allowing you to describe game-theoretical games. _Open-games-hs_
+is a framework to write those games in a programmatic way and analyze those games. The framework is
+written in Haskell and this allows Open Games to inherit a lot of features from the haskell ecosystem such
+as datatypes, functions and the large set of haskell libraries.
+
+_Open-games-hs_ is a framework implementing the theory of _Open games_ with which you can write a program that
+describes a game and its players. You can supply strategies for the game and test the game for equilibrium.
+If the game does not reach equilibrium, the list of deviations
+is printed and the reason why the player want to deviate is recorded. The biggest strength of open games
+is the ability to build your game from smaller modular components that you can
+swap out or parameterize.
+
+# Modelling in open games
+
+This [tutorial](https://github.com/philipp-zahn/open-games-hs/blob/master/Tutorial/TUTORIAL.md) shows how to use the software for modelling.
 
 
+# How to install and run open-games-hs
 
+Open-games-hs requires stack and a text editor, for the text editor, it is very likely
+that your existing one already supports haskell. If you do not have one I recommend starting with [VSCode][VSCODE].
 
-# Open games in Haskell
+You can install stack following the instructions here: (https://docs.haskellstack.org/en/stable/install_and_upgrade/)[https://docs.haskellstack.org/en/stable/install_and_upgrade/]
 
-This is a Haskell combinator library implementing open games, a battery of examples, and a code generation tool for making the combinator library practical to work with.
+Stack will be responsible for installing haskell, the Open-games-hs framework and its dependencies.
 
-This tool allows modular definition of games, and then checking (but not computing) different types of Nash equilibria. After entering a non-equilibrium, the tool can generate detailed information about deviations.
+Once stack is installed you can run the demo project by running `stack run`. That will execute the project, and
+print the result of executing an equilibrium check on a very simple game. The rest of the tutorial will go into how
+to use the open-games framework in order to design and analyse games interactively using `ghci`. To invoke it, use
+`stack ghci` and that will start a new interactive session.
 
-For background on open games, see these two papers:
-* [Compositional game theory](https://arxiv.org/abs/1603.04641) by Ghani, Hedges, Winschel and Zahn
-* [Bayesian open games](https://arxiv.org/abs/1910.03656) by Bolt, Hedges and Zahn
+# Designing and analyzing games interactively
 
-I hope that this tool will be usable without in-depth knowledge of how it works or how open games work, but I can't make any promises.
+During an interactive session you can:
 
-From a user's perspective, the examples in `Examples` are intended to be self-documenting. Studying the modules in that directory will be more effective than any documentation I could write.
+- execute programs
+- recompile the project with `:r`
+- obtain documentation about a function with `:i`
+- query the type of an expression with `:t`
 
-When I have time I plan to write a paper describing how the preprocessor works.
+Most of the programs you will execute will print the result of analyzing a game. In the demo project, the main function
+perform an analysis of two simple games, the first one is in equilibrium and the second one exhibits profitable deviations. To
+run the program from the interactive sessions type `main`.
 
-Feel free to [contact me](mailto:juleshedges.invariant@gmail.com) (ie. [Jules Hedges](https://julesh.com/)) if you have specific questions. ("Why doesn't this block compile correctly?" is a reasonable question.)
+# Graph dependency visualiser
 
-Also contact me if you'd like to contribute! A concrete syntax and parser for blocks is an example of something that would be easy to add for a better programmer than me.
+There is a rudimentary dependency visualizer for debugging (and inspecting larger games).
 
-Other contributions not recorded by GitHub (because this is a copy of a private repository): Philipp Zahn, Sjoerd Visscher
+If you run `stack run graphics`, a `dotfile` is created. This is a graphviz file that can be interpreted with graphviz with the following command:
 
-## The preprocessor
+    dot -Tsvg dotfile > output.svg
 
-In order to use the preprocessor, create a value of type `Preprocessor.AbstractSyntax.Block`, and then interactively (in GHCi) apply the function `Preprocessor.Preprocessor.compileBlock`. The resulting `Show` instance will result in a string containing Haskell code. Copy this code from the terminal into a file that makes the appropriate imports from `Engine`.
-
-Examples of blocks can be seen in `Examples`, and in each case the resulting generated code can be seen right after the block definition.
-
-The scoping rules for blocks are quite complicated, and reflect the topological rules for string diagrams of open games:
-* Block inputs and line outputs (both covariant and contravariant) are variables, which are brought into scope (I think they could be general patterns, but I haven't tested it properly)
-* Covariant inputs of lines are expressions which can contain variables brought into scope by the covariant inputs of the block, and the covariant outputs of any previous line
-* The covariant outputs of the block are expressions which can contain variables brought into scope by the covariant inputs of the block and the covariant outputs of any line
-* Contravariant inputs of lines are expressions which can contain variables brought into scope by any inputs of the block, the covariant outputs of any line, and the contravariant outputs of any later line
-* The contravariant outputs of the block are expressions which can contain variables brought into scope by any inputs of the block and any outputs of any line
-
-(Think: covariant values flow downwards, then turn around and come back upwards. Contravariant values only flow upwards.)
-
-The preprocessor does no scope or type checking, so if you make a mistake then you will get a (probably large) error message when you compile the generated code.
-
-## Using the Template Haskell code generator
-
-In addition to using `Block`, one can use `QBlock` and `QLine` by importing
-`Preprocessor.THSyntax` and add `{-# LANGUAGE TemplateHaskell #-}` at the top of the file
-as a language pragma. This allows to define blocks _inline_ without copy pasting generated code
-through GHCI using a syntax very similar to the one for `Block`. In order to generate the code
-for a `QBlock` or a list of `QLine`, you need to call the function `generateGame` at the top
-level of your file with a function name given as a string and a list of strings for the
-arguments this function will use. The last argument is the `QBlock` that define the game.
-
-This approach as some known limitations:
-
-- All the intermediate terms have to be quoted with `[|…|]` which makes the syntax look really
-confusing when they are within lists
-- The block context can only return parameters and not expressions.
-
-## Run the code
-
-You can use `stack build` to compile the project, `stack test` will run the tests
-`stack ghci` and `stack ghci --test` will run ghci using the main target or the test
-targets respectively.
+This will create an SVG that you can open with any SVG viewer (like a web browser). The graph is generated from the `parseTree` of a game. Files of this form need to be located in `graphics/Main.hs` where the main function simply prints the dot file from the game passed in argument. If you want to use a different game, you can pass it a new parsetree using the `parseTree` quasiquote.

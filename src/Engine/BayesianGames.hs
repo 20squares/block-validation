@@ -10,7 +10,9 @@
 module Engine.BayesianGames
   ( StochasticStatefulBayesianOpenGame(..)
   , Agent(..)
+  , Payoff(..)
   , dependentDecision
+  , dependentEpsilonDecision
   , fromLens
   , fromFunctions
   , nature
@@ -19,6 +21,8 @@ module Engine.BayesianGames
   , distFromList
   , pureAction
   , playDeterministically
+  , discount
+  , addPayoffs
   ) where
 
 
@@ -28,8 +32,12 @@ import           Control.Monad.Trans.Class
 import GHC.TypeLits
 
 import Data.Foldable
+import           Data.HashMap                       as HM hiding (null,map,mapMaybe)
+
+
 import Data.List (maximumBy)
 import Data.Ord (comparing)
+import           Data.Utils
 import Numeric.Probability.Distribution hiding (map, lift, filter)
 
 import Engine.OpenGames hiding (lift)
@@ -44,6 +52,8 @@ type StochasticStatefulBayesianOpenGame a b x s y r = OpenGame StochasticStatefu
 
 type Agent = String
 
+type Payoff = Double
+
 support :: Stochastic x -> [x]
 support = map fst . decons
 
@@ -52,13 +62,14 @@ bayes a y = mapMaybe (\(x, y') -> if y' == y then Just x else Nothing) a
 
 
 deviationsInContext :: (Show x, Show y, Ord y, Show theta)
-                    => Double -> Agent -> x -> theta -> Stochastic y -> (y -> Double) -> [y] -> [DiagnosticInfoBayesian x y]
+                    => Double -> Agent -> x -> theta -> Stochastic y -> (y -> Payoff) -> [y] -> [DiagnosticInfoBayesian x y]
 deviationsInContext epsilon name x theta strategy u ys
   = [DiagnosticInfoBayesian { equilibrium = strategicPayoff >= optimalPayoff - epsilon,
                       player = name,
                       payoff = strategicPayoff,
                       optimalMove = optimalPlay,
                       optimalPayoff = optimalPayoff,
+                      context = u ,
                       state = x,
                       unobservedState = show theta,
                       strategy = strategy}]
@@ -66,16 +77,35 @@ deviationsInContext epsilon name x theta strategy u ys
         (optimalPlay, optimalPayoff) = maximumBy (comparing snd) [(y, u y) | y <- ys]
 
 
-dependentDecision :: (Eq x, Show x, Ord y, Show y) => String -> (x -> [y]) -> StochasticStatefulBayesianOpenGame '[Kleisli Stochastic x y] '[[DiagnosticInfoBayesian x y]] x () y Double
+dependentDecision :: (Eq x, Show x, Ord y, Show y) => String -> (x -> [y]) -> StochasticStatefulBayesianOpenGame '[Kleisli Stochastic x y] '[[DiagnosticInfoBayesian x y]] x () y Payoff
 dependentDecision name ys = OpenGame {
   play = \(a ::- Nil) -> let v x = do {y <- runKleisli a x; return ((), y)}
-                             u () r = do {v <- get; put (\name' -> if name == name' then v name' + r else v name')}
+                             u () r = modify (adjustOrAdd (+ r) r name)
                             in StochasticStatefulOptic v u,
   evaluate = \(a ::- Nil) (StochasticStatefulContext h k) ->
-     (concat [ let u y = expected (evalStateT (do {t <- lift (bayes h x); r <- k t y; v <- get; return (r + v name)}) (const 0))
+     (concat [ let u y = expected (evalStateT (do {t <- lift (bayes h x);
+                                                   r <- k t y;
+                                                   gets ((+ r) . HM.findWithDefault 0.0 name)})
+                                    HM.empty)
                    strategy = runKleisli a x
                   in deviationsInContext 0 name x theta strategy u (ys x)
               | (theta, x) <- support h]) ::- Nil }
+
+dependentEpsilonDecision :: (Eq x, Show x, Ord y, Show y) => Double -> String -> (x -> [y])  -> StochasticStatefulBayesianOpenGame '[Kleisli Stochastic x y] '[[DiagnosticInfoBayesian x y]] x () y Payoff
+dependentEpsilonDecision epsilon name ys = OpenGame {
+  play = \(a ::- Nil) -> let v x = do {y <- runKleisli a x; return ((), y)}
+                             u () r = modify (adjustOrAdd (+ r) r name)
+                            in StochasticStatefulOptic v u,
+  evaluate = \(a ::- Nil) (StochasticStatefulContext h k) ->
+     (concat [ let u y = expected (evalStateT (do {t <- lift (bayes h x);
+                                                   r <- k t y;
+                                                   gets ((+ r) . HM.findWithDefault 0.0 name)})
+                                    HM.empty)
+                   strategy = runKleisli a x
+                  in deviationsInContext epsilon name x theta strategy u (ys x)
+              | (theta, x) <- support h]) ::- Nil }
+
+
 
 -- Support functionality for constructing open games
 fromLens :: (x -> y) -> (x -> r -> s) -> StochasticStatefulBayesianOpenGame '[] '[] x s y r
@@ -110,3 +140,34 @@ pureAction x = Kleisli $ const $ certainly x
 
 playDeterministically :: a -> Stochastic a
 playDeterministically = certainly
+
+
+-- discount Operation for repeated structures
+discount :: String -> (Payoff -> Payoff) -> StochasticStatefulBayesianOpenGame '[] '[] () () () ()
+discount name f = OpenGame {
+  play = \_ -> let v () = return ((), ())
+                   u () () = modify (adjustOrAdd f (f 0) name)
+                 in StochasticStatefulOptic v u,
+  evaluate = \_ _ -> Nil}
+
+-- add payoffs
+addPayoffs :: String -> StochasticStatefulBayesianOpenGame '[] '[] Payoff () () ()
+addPayoffs name = OpenGame {
+  play = \_ -> let v x = return (x, ())
+                   u value () = modify (adjustOrAdd (\x -> x + value) value name)
+                 in StochasticStatefulOptic v u,
+  evaluate = \_ _ -> Nil}
+
+
+--------------------------------------------------------------------------------------
+-- Implement a version which samples the play using the Prob library build in sampling
+-- Ignore the evaluate part
+
+dependentDecisionIO :: (Eq x, Show x, Ord y, Show y) => String -> (x -> [y]) -> StochasticStatefulBayesianOpenGame '[Kleisli Stochastic x y] '[[DiagnosticInfoBayesian x y]] x () y Double
+dependentDecisionIO name _ = OpenGame {
+  play = \(a ::- Nil) -> let v x = do
+                               y <- runKleisli a x
+                               return ((), y)
+                             u () r = modify (adjustOrAdd (+ r) r name)
+                            in StochasticStatefulOptic v u,
+  evaluate = undefined }

@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 
 module Engine.Diagnostics
@@ -24,28 +25,29 @@ import Engine.TLL
 -- for standard game-theoretic analysis
 
 -- Defining the necessary types for outputting information of a BayesianGame
-data DiagnosticInfoBayesian x y = DiagnosticInfoBayesian {
-  equilibrium     :: Bool,
-  player          :: String,
-  optimalMove     :: y,
-  strategy        :: Stochastic y,
-  optimalPayoff   :: Double,
-  payoff          :: Double,
-  state           :: x,
-  unobservedState :: String}
-  deriving (Show, Eq)
+data DiagnosticInfoBayesian x y = DiagnosticInfoBayesian
+  { equilibrium     :: Bool
+  , player          :: String
+  , optimalMove     :: y
+  , strategy        :: Stochastic y
+  , optimalPayoff   :: Double
+  , context         :: (y -> Double)
+  , payoff          :: Double
+  , state           :: x
+  , unobservedState :: String}
 
 
 -- prepare string information for Bayesian game
 showDiagnosticInfo :: (Show y, Ord y, Show x) => DiagnosticInfoBayesian x y -> String
 showDiagnosticInfo info =  
      "\n"    ++ "Player: " ++ player info
-     ++ "\n" ++ "Optimal move: " ++ (show $ optimalMove info)
+     ++ "\n" ++ "Optimal Move: " ++ (show $ optimalMove info)
      ++ "\n" ++ "Current Strategy: " ++ (show $ strategy info)
      ++ "\n" ++ "Optimal Payoff: " ++ (show $ optimalPayoff info)
      ++ "\n" ++ "Current Payoff: " ++ (show $ payoff info)
      ++ "\n" ++ "Observable State: " ++ (show $ state info)
      ++ "\n" ++ "Unobservable State: " ++ (show $ unobservedState info)
+
 
 
 -- output string information for a subgame expressions containing information from several players - bayesian 
@@ -63,6 +65,8 @@ checkEqL ls = let xs = fmap equilibrium ls
 
 ----------------------------------------------------------
 -- providing the relevant functionality at the type level
+-- for show output
+
 data ShowDiagnosticOutput = ShowDiagnosticOutput
 
 instance (Show y, Ord y, Show x) => Apply ShowDiagnosticOutput [DiagnosticInfoBayesian x y] String where
@@ -87,7 +91,6 @@ instance Apply Concat String (String -> String) where
   apply _ x = \y -> x ++ "\n NEWGAME: \n" ++ y
 
 
-
 ---------------------
 -- main functionality
 
@@ -106,5 +109,4 @@ generateIsEq :: forall xs.
                ) => List xs -> IO ()
 generateIsEq hlist = putStrLn $
   "----Analytics begin----" ++ (foldrL Concat "" $ mapL @_ @_ @(ConstMap String xs) PrintIsEq hlist) ++ "----Analytics end----\n"
-
 
