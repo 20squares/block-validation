@@ -42,6 +42,9 @@ library:
     - Examples.Markov.TwoStageMarkov
     - Examples.Markov.TestSimpleMonteCarlo
     - Examples.Markov.TestSimpleMonteCarlo.Continuation
+    - Examples.TimingGames.TimingGame
+    - Examples.TimingGames.GraphGames.Internal
+    - Examples.TimingGames.TimingGameGraphsAnalysis
     - Graphics
 
 dependencies:
@@ -54,6 +57,7 @@ dependencies:
     - profunctors
     - template-haskell
     - parsec
+    - hspec
     - QuickCheck
     - comonad
     - haskeline
@@ -69,6 +73,10 @@ dependencies:
     - vector
     - monad-bayes
     - criterion
+    - containers
+    - algebraic-graphs
+    - NumInstances
+    - generic-random
 
 
 
@@ -89,4 +97,29 @@ executables:
       - open-games-hs
       - graphviz
       - template-haskell
-      - criterion
+      - path
+      - path-io
+
+tests:
+  test-open-games:
+    main: Spec.hs
+    source-dirs: src/test
+    dependencies:
+      - open-games-hs
+      - template-haskell
+      - base
+      - hspec
+      - QuickCheck
+
+  eq-tests:
+    buildable: True
+    main: Equilibrium
+    source-dirs: test
+    dependencies:
+      - open-games-hs
+      - template-haskell
+      - base
+      - hspec
+      - QuickCheck
+      - generic-random
+

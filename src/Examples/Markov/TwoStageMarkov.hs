@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Examples.Markov.TwoStageMarkov where 
+module Examples.Markov.TwoStageMarkov where
 
 import           Data.Tuple.Extra (uncurry3)
 import           Engine.Engine
@@ -62,7 +62,7 @@ transitionEndState :: EndState -> ActionPD -> ActionPD -> Stochastic EndState
 transitionEndState True _ _ = playDeterministically True
 transitionEndState False Defect _ = uniform [True,False]
 transitionEndState False _      Defect = uniform [True,False]
-transitionEndState False Cooperate Cooperate = playDeterministically False 
+transitionEndState False Cooperate Cooperate = playDeterministically False
 
 -- The transition happens deterministically if one of the player does not play _Cooperate_ and then we stay there
 transitionEndStateDeterm :: EndState -> ActionPD -> ActionPD -> Stochastic EndState
@@ -152,7 +152,7 @@ startGame = [opengame|
    returns   :      ;
   |]
 
-  
+
 -- absorbing state
 -- only one action and therefore deterministic payoffGame
 endState = [opengame|
@@ -464,4 +464,3 @@ eqOutput2 iterator strat initialAction = generateIsEq $ repeatedCompleteGameEq2 
 
 -- Show output meeting in NY end game
 eqOutputMYN iterator strat initialAction = generateIsEq $ repeatedCompleteGameMNYEq iterator strat initialAction
-

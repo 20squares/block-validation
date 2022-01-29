@@ -13,6 +13,7 @@ module Engine.Engine
   , Payoff(..)
   , dependentDecision
   , dependentEpsilonDecision
+  , debuggingAgent
   , fromFunctions
   , fromLens
   , uniformDist
@@ -20,9 +21,11 @@ module Engine.Engine
   , pureAction
   , playDeterministically
   , discount
+  , addPayoffs
   , DiagnosticInfoBayesian(..)
   , generateOutput
   , generateIsEq
+  , generateEquilibrium
   , OpenGame(..)
   , lift
   , reindex
