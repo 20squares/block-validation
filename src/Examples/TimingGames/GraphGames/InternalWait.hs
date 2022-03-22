@@ -1,9 +1,6 @@
-{-# LANGUAGE DatatypeContexts #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
@@ -19,18 +16,11 @@ import           Preprocessor.Preprocessor
 import           Examples.TimingGames.GraphGames.TypesFunctions
 import           Examples.TimingGames.GraphGames.SharedBuildingBlocks
 
-import           Algebra.Graph.Relation
-import           Control.Monad.State  hiding (state,void)
-import qualified Control.Monad.State  as ST
-import qualified Data.Map.Strict      as M
-import           Data.NumInstances.Tuple
--- NOTE ^^ this is for satisfying the class restrictions of Algebra.Graph.Relation
-import qualified Data.Set             as S
-import           Data.Tuple.Extra (uncurry3)
 
 --------------------------------------------
 -- Multiplayer version of the protocol
 -- State for each game is a model of a chain
+-- Proposer has the possibility to not add to the chain
 
 -- TODO Put proposers' decisions also in a map; to have access to earlier player ids
 -- TODO For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?

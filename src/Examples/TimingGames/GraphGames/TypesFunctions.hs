@@ -166,6 +166,9 @@ delayMessage (actualTimer, delayedTimer, oldChain, newChain)
   | actualTimer < delayedTimer = oldChain
   | otherwise                  = newChain
 
+
+
+
 -- transform list to Map; done here due to restrictions of DSL
 newAttesterMap :: [(Player,Id)] -> AttesterMap -> AttesterMap
 newAttesterMap new old = M.union (M.fromList new) old
