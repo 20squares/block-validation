@@ -11,6 +11,7 @@ import qualified Data.Map.Strict      as M
 
 import           Engine.Engine
 import           Examples.TimingGames.GraphGames.Internal
+import           Examples.TimingGames.GraphGames.TypesFunctions
 
 -------------------------
 -- Equilibrium definition
@@ -19,11 +20,6 @@ import           Examples.TimingGames.GraphGames.Internal
 eqTwoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee strategy context = generateOutput $ evaluate (twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee) strategy context
 
 eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee strategy context = generateOutput $ evaluate (repeatedGame p0 p1 a10 a20 a11 a21 reward fee) strategy context
-
-eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee strategy context = generateOutput $ evaluate (twoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee) strategy context
-
-eqOneRoundGameWait p0 p1 a10 a20 a11 a21 reward fee strategy context = generateOutput $ evaluate (repeatedGameWait p0 p1 a10 a20 a11 a21 reward fee) strategy context
-
 
 
 -----------------------
@@ -38,15 +34,6 @@ strategyProposer = Kleisli (\(_,chain) -> pure $ determineHead chain)
 strategyProposer1 :: Kleisli Stochastic (Timer, Chain) Id
 strategyProposer1 = pureAction 1
 
--- build on the head which has received the most votes?
--- that is a strategy as targeted by the protocol
-strategyProposerWait :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposerWait = Kleisli (\(_,chain) -> pure $ Send $ determineHead chain)
-
--- deviating strategy for proposer -- do not send
-strategyProposerWait1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposerWait1 = pureAction DoNotSend
-
 
 -- vote for the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
@@ -57,19 +44,10 @@ strategyAttester = Kleisli (\(_,chainNew,_) -> pure $ determineHead chainNew)
 strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::- Nil
 strategyOneRound1 = strategyProposer1 ::- strategyAttester ::- strategyAttester  ::- Nil
 
--- Combining strategies for a single stage -- waiting
-strategyOneRoundWait = strategyProposerWait ::- strategyAttester ::- strategyAttester ::- Nil
-strategyOneRoundWait1 = strategyProposerWait1 ::- strategyAttester ::- strategyAttester  ::- Nil
-
-
 
 -- Combining strategies for several stages
 strategyTuple = strategyOneRound +:+ strategyOneRound
 strategyTuple1 = strategyOneRound1 +:+ strategyOneRound
-
--- Combining strategies for several stages
-strategyTupleWait = strategyOneRoundWait +:+ strategyOneRoundWait
-strategyTupleWait1 = strategyOneRoundWait1 +:+ strategyOneRoundWait
 
 
 

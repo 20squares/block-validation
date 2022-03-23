@@ -3,20 +3,23 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.TimingGames.ExogenousTicker where
+module Examples.TimingGames.TimingGameGraphsAnalysisWait where
 
 
 import           Algebra.Graph.Relation
 import qualified Data.Map.Strict      as M
 
 import           Engine.Engine
-import           Examples.TimingGames.GraphGames.InternalOverlappingTicker
+import           Examples.TimingGames.GraphGames.InternalWait
 import           Examples.TimingGames.GraphGames.TypesFunctions
+
 -------------------------
 -- Equilibrium definition
 
-eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 strategy context = generateOutput $ evaluate (twoRoundGameWaitExogTicker p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2) strategy context
+-- eq definition
+eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee strategy context = generateOutput $ evaluate (twoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee) strategy context
 
+eqOneRoundGameWait p0 p1 a10 a20 a11 a21 reward fee strategy context = generateOutput $ evaluate (repeatedGameWait p0 p1 a10 a20 a11 a21 reward fee) strategy context
 
 
 
@@ -67,26 +70,37 @@ initialMap = M.fromList [("a10",3),("a20",3)]
 
 -- Initial context for linear chain, all initiated at the same ticker time, and an empty hashMap
 initialContextLinear :: StochasticStatefulContext
-                          (Chain, M.Map Player Id)
+                          (Timer, Timer, Chain, M.Map Player Id)
                           ()
-                          (Chain, AttesterMap)
+                          (Timer, Stochastic Int, Chain, AttesterMap)
                           ()
-initialContextLinear = StochasticStatefulContext (pure ((),(initialChainLinear,initialMap))) (\_ _ -> pure ())
+initialContextLinear = StochasticStatefulContext (pure ((),(0,0,initialChainLinear,initialMap))) (\_ _ -> pure ())
 
 
 
+
+initialContextLinear2 :: StochasticStatefulContext
+                          (Timer, Timer, Timer, Timer, Chain, M.Map Player Id)
+                          ()
+                          ()
+                          ()
+initialContextLinear2 = StochasticStatefulContext (pure ((),(0,0,0,0,initialChainLinear,initialMap))) (\_ _ -> pure ())
 
 initialContextForked :: StochasticStatefulContext
-                          (Chain, M.Map Player Id)
+                          (Timer, Timer, Chain, M.Map Player Id)
                           ()
-                          (Chain, M.Map Player Id)
+                          (Timer, Stochastic Timer, Chain, M.Map Player Id)
                           ()
-initialContextForked = StochasticStatefulContext (pure ((),(initialChainForked,initialMap))) (\_ _ -> pure ())
+initialContextForked = StochasticStatefulContext (pure ((),(0,0,initialChainForked,initialMap))) (\_ _ -> pure ())
 
 
 
 -------------------
 -- Scenarios Tested
 {-
-eqTwoRoundGameWait "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0 0 0 0  strategyTupleWait initialContextLinear
+eqTwoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTuple initialContextLinear
+
+eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneRound initialContextForked
+
+eqTwoRoundGameWait "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTupleWait initialContextLinear
 -}

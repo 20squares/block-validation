@@ -1,9 +1,6 @@
-{-# LANGUAGE DatatypeContexts #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
@@ -19,14 +16,6 @@ import           Preprocessor.Preprocessor
 import           Examples.TimingGames.GraphGames.TypesFunctions
 import           Examples.TimingGames.GraphGames.SharedBuildingBlocks
 
-import           Algebra.Graph.Relation
-import           Control.Monad.State  hiding (state,void)
-import qualified Control.Monad.State  as ST
-import qualified Data.Map.Strict      as M
-import           Data.NumInstances.Tuple
--- NOTE ^^ this is for satisfying the class restrictions of Algebra.Graph.Relation
-import qualified Data.Set             as S
-import           Data.Tuple.Extra (uncurry3)
 
 
 ----------
@@ -176,7 +165,6 @@ twoRoundGameWaitExogTicker  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee ticker1
     returns   :  ;
 
     inputs    : ticker2,delayedTicker2, chainNew, attesterHashMapNew ;
-    // NOTE ticker time is ignored here
     feedback  :   ;
     operation : oneRoundWait p1 p2 a11 a21 a12 a22 reward fee ;
     outputs   : attesterHashMapNew2, chainNew2 ;

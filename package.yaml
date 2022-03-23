@@ -43,8 +43,11 @@ library:
     - Examples.Markov.TestSimpleMonteCarlo
     - Examples.Markov.TestSimpleMonteCarlo.Continuation
     - Examples.TimingGames.TimingGame
+    - Examples.TimingGames.ExogenousTicker
     - Examples.TimingGames.GraphGames.Internal
+    - Examples.TimingGames.GraphGames.InternalOverlappingTicker
     - Examples.TimingGames.TimingGameGraphsAnalysis
+    - Examples.TimingGames.GraphGames.TypesFunctions
     - Graphics
 
 dependencies:

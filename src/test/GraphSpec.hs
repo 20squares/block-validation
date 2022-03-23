@@ -9,6 +9,7 @@ import qualified Data.Map.Strict      as M
 import           Test.Hspec
 
 import           Examples.TimingGames.GraphGames.Internal
+import           Examples.TimingGames.GraphGames.TypesFunctions
 
 
 spec :: Spec
