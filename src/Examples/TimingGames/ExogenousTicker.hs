@@ -15,7 +15,7 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 -------------------------
 -- Equilibrium definition
 
-eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 strategy context = generateOutput $ evaluate (twoRoundGameWaitExogTicker p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2) strategy context
+eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 strategy context = generateIsEq $ evaluate (twoRoundGameWaitExogTicker p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2) strategy context
 
 
 

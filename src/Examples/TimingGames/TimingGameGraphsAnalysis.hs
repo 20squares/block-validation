@@ -17,7 +17,7 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 -- Equilibrium definition
 
 -- eq definition
-eqTwoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee strategy context = generateOutput $ evaluate (twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee) strategy context
+eqTwoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee strategy context = generateIsEq $ evaluate (twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee) strategy context
 
 eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee strategy context = generateOutput $ evaluate (repeatedGame p0 p1 a10 a20 a11 a21 reward fee) strategy context
 
