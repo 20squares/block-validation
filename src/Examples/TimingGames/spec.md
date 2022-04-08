@@ -75,3 +75,13 @@ In the case of a linear graph, if attesters A & B voted on h(1)
 
 In the case of a fork, the head is either h(1)
 or h(2). This is determined by the GHOST rule. For instance, if A votes h(0), C and D vote h(2), then h(2) will be the head, and A, C and D would be rewarded, while both proposer B(1) and attester B would get 0.
+
+
+# Possible attack
+
+
+* What happens if the proposer 1 waits until time 13 and then sends a new block 
+
+* At that moment the attester 3 and 4 are looking at a two possible heads of the chain
+
+* Also check the not send equilibrium for the linear case actually makes sense
