@@ -67,21 +67,21 @@ initialMap = M.fromList [("a10",3),("a20",3)]
 
 -- Initial context for linear chain, all initiated at the same ticker time, and an empty hashMap
 initialContextLinear :: StochasticStatefulContext
-                          (Chain, M.Map Player Id)
+                          (Chain, Id, M.Map Player Id)
                           ()
-                          (Chain, AttesterMap)
+                          (Chain, Id,  AttesterMap)
                           ()
-initialContextLinear = StochasticStatefulContext (pure ((),(initialChainLinear,initialMap))) (\_ _ -> pure ())
+initialContextLinear = StochasticStatefulContext (pure ((),(initialChainLinear,(determineHead initialChainLinear), initialMap))) (\_ _ -> pure ())
 
 
 
 
 initialContextForked :: StochasticStatefulContext
-                          (Chain, M.Map Player Id)
+                          (Chain, Id, M.Map Player Id)
                           ()
-                          (Chain, M.Map Player Id)
+                          (Chain, Id, M.Map Player Id)
                           ()
-initialContextForked = StochasticStatefulContext (pure ((),(initialChainForked,initialMap))) (\_ _ -> pure ())
+initialContextForked = StochasticStatefulContext (pure ((),(initialChainForked,(determineHead initialChainForked), initialMap))) (\_ _ -> pure ())
 
 
 

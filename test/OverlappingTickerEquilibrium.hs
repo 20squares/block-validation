@@ -52,7 +52,8 @@ eqForallTickers (ticker1,delayedTicker1,ticker2,delayedTicker2) =
   checkEq ticker1 delayedTicker1 ticker2 delayedTicker2  == True
   where
    checkEq ticker1 delayedTicker1 ticker2 delayedTicker2 =  generateEquilibrium $  evaluate (twoRoundGameWaitExogTicker "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 ticker1 delayedTicker1 ticker2 delayedTicker2) strategyTupleWait context
-   context =  StochasticStatefulContext (pure ((),(initialChainLinear,initialMap))) (\_ _ -> pure ())
+   context =  StochasticStatefulContext (pure ((),(initialChainLinear, initialId, initialMap))) (\_ _ -> pure ())
+   initialId = determineHead initialChainLinear 
    initialMap = M.fromList [("a10",3),("a20",3)]
 
 -- construct testable property

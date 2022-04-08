@@ -70,28 +70,29 @@ initialMap = M.fromList [("a10",3),("a20",3)]
 
 -- Initial context for linear chain, all initiated at the same ticker time, and an empty hashMap
 initialContextLinear :: StochasticStatefulContext
-                          (Timer, Timer, Chain, M.Map Player Id)
+                          (Timer, Timer, Chain, Id, M.Map Player Id)
                           ()
-                          (Timer, Stochastic Int, Chain, AttesterMap)
+                          (Timer, Stochastic Int, Chain, Id, AttesterMap)
                           ()
-initialContextLinear = StochasticStatefulContext (pure ((),(0,0,initialChainLinear,initialMap))) (\_ _ -> pure ())
+initialContextLinear = StochasticStatefulContext (pure ((),(0,0,initialChainLinear, (determineHead initialChainLinear), initialMap))) (\_ _ -> pure ())
+  
 
 
 
 
 initialContextLinear2 :: StochasticStatefulContext
-                          (Timer, Timer, Timer, Timer, Chain, M.Map Player Id)
+                          (Timer, Timer, Timer, Timer, Chain, Id, M.Map Player Id)
                           ()
                           ()
                           ()
-initialContextLinear2 = StochasticStatefulContext (pure ((),(0,0,0,0,initialChainLinear,initialMap))) (\_ _ -> pure ())
+initialContextLinear2 = StochasticStatefulContext (pure ((),(0,0,0,0,initialChainLinear, (determineHead initialChainLinear), initialMap))) (\_ _ -> pure ())
 
 initialContextForked :: StochasticStatefulContext
-                          (Timer, Timer, Chain, M.Map Player Id)
+                          (Timer, Timer, Chain, Id, M.Map Player Id)
                           ()
-                          (Timer, Stochastic Timer, Chain, M.Map Player Id)
+                          (Timer, Stochastic Timer, Chain, Id, M.Map Player Id)
                           ()
-initialContextForked = StochasticStatefulContext (pure ((),(0,0,initialChainForked,initialMap))) (\_ _ -> pure ())
+initialContextForked = StochasticStatefulContext (pure ((),(0,0,initialChainForked, (determineHead initialChainForked), initialMap))) (\_ _ -> pure ())
 
 
 

@@ -45,8 +45,10 @@ library:
     - Examples.TimingGames.TimingGame
     - Examples.TimingGames.ExogenousTicker
     - Examples.TimingGames.GraphGames.Internal
+    - Examples.TimingGames.GraphGames.InternalWait
     - Examples.TimingGames.GraphGames.InternalOverlappingTicker
     - Examples.TimingGames.TimingGameGraphsAnalysis
+    - Examples.TimingGames.TimingGameGraphsAnalysisWait
     - Examples.TimingGames.GraphGames.TypesFunctions
     - Graphics
 

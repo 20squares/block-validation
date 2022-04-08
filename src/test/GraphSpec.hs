@@ -8,7 +8,6 @@ import           Control.Exception (evaluate)
 import qualified Data.Map.Strict      as M
 import           Test.Hspec
 
-import           Examples.TimingGames.GraphGames.Internal
 import           Examples.TimingGames.GraphGames.TypesFunctions
 
 
@@ -89,23 +88,23 @@ proposed = describe
    "proposed correctly" $ do
      it "proposed correctly linear chain" $ do
        shouldBe
-         (proposedCorrect testChain)
+         (proposedCorrect True testChain)
          True
      it "proposed incorrectly forked chain" $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4))]))))
+         (proposedCorrect True ((overlay testChain (edges [((2,2),(5,4))]))))
          False
      it "proposed incorrectly forked chain (2)" $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4))]))))
+         (proposedCorrect True ((overlay testChain (edges [((2,2),(5,4))]))))
          False
      it "proposed correctly forked chain " $ do
        shouldBe
-         (proposedCorrect ((overlay testChain (edges [((2,2),(5,4)),((5,4),(6,3))]))))
+         (proposedCorrect True ((overlay testChain (edges [((2,2),(5,4)),((5,4),(6,3))]))))
          True
      it "proposed correctly forked chain (2)" $ do
         shouldBe
-         (proposedCorrect testChain2)
+         (proposedCorrect True testChain2)
          False
 
 proposerAlternatives = describe

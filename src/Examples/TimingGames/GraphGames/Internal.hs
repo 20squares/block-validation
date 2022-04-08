@@ -13,13 +13,14 @@ module Examples.TimingGames.GraphGames.Internal where
 
 import           Engine.Engine
 import           Preprocessor.Preprocessor
-import           Examples.TimingGames.GraphGames.TypesFunctions
-import           Examples.TimingGames.GraphGames.SharedBuildingBlocks
+import           Examples.TimingGames.GraphGames.TypesFunctions hiding (proposedCorrect)
+import           Examples.TimingGames.GraphGames.SharedBuildingBlocks hiding (proposerPayment)
 
 import           Algebra.Graph.Relation
 import           Control.Monad.State  hiding (state,void)
 import qualified Control.Monad.State  as ST
 import qualified Data.Map.Strict      as M
+import qualified Data.Set             as S
 
 --------------------------------------------
 -- Multiplayer version of the protocol
@@ -105,12 +106,57 @@ proposer  name = [opengame|
 -- 2 Complete games
 -------------------
 
+
+--------------------- added for old version overwriting building blocks ------------------------
+-- TODO change repeated version to actual setting once settled
+-- Did the proposer from (t-1) send the block? Gets rewarded if that block is on the path to the current head.
+proposedCorrect :: Chain -> Bool
+proposedCorrect  chain  =
+  let currentHeadId = determineHead chain
+      currentHead   = findVertexById chain currentHeadId
+      oldDecisionProposer = vertexCount chain - 1
+      chainClosure  = closure chain
+      onPathElems   = preSet currentHead chainClosure
+      pastHead      = findVertexById chain oldDecisionProposer
+      in S.member pastHead onPathElems
+
+
+
+proposerPayment name reward = [opengame|
+
+    inputs    : chainNew ;
+    feedback  :   ;
+
+    :-----:
+    inputs    :  chainNew ;
+    feedback  :   ;
+    operation : forwardFunction $ proposedCorrect  ;
+    outputs   : correctSent ;
+    returns   : ;
+    // ^ This determines whether the proposer was correct in period (t-1)
+
+
+    inputs    : correctSent ;
+    feedback  :   ;
+    operation : updatePayoffProposer name reward;
+    outputs   : ;
+    returns   : ;
+    // ^ Updates the payoff of the proposer given decision in period (t-1)
+
+    :-----:
+
+    outputs   : ;
+    returns   :  ;
+  |]
+
+--------------------- added for old version overwriting building blocks ------------------------
+
+  
 -- One round game
 oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
-    inputs    : ticker, delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld  ;
+    inputs    : ticker, delayedTicker, chainOld, attesterHashMapOld  ;
     // ^ chainOld is the old hash
-    // ^ we also keep the head of the chain from T2 as a way to check for the proposer behavior in t-1
     feedback  :   ;
 
     :-----:
@@ -142,23 +188,16 @@ oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
     returns   : ;
     // ^ Determines whether attesters from period (t-1) were correct and get rewarded
 
-    inputs    : chainOld, headOfChainIdT2 ;
-    feedback  :   ;
-    operation : oldProposerAddedBlock ;
-    outputs   : blockAddedInT1, headOfChainIdT1;
-    returns   : ;
-    // ^ This determines whether the proposer from period (t-1) did actually add a block or not
-
-    inputs    : blockAddedInT1, chainNewUpdated ;
+    inputs    : chainNewUpdated ;
     feedback  :   ;
     operation : proposerPayment p0 reward ;
     outputs   :  ;
-    returns   :  ;
+    returns   : ;
     // ^ This determines whether the proposer from period (t-1) was correct and triggers payments accordingly
 
     :-----:
 
-    outputs   : attesterHashMapNew, chainNewUpdated,  headOfChainIdT1, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, chainNewUpdated, delayedTickerUpdate ;
     returns   :  ;
   |]
 
@@ -167,15 +206,15 @@ oneRound p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 -- Repeated game
 repeatedGame  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
-    inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
 
     :-----:
 
-    inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
     operation : oneRound p0 p1 a10 a20 a11 a21 reward fee ;
-    outputs   : attesterHashMapNew, chainNew, headOfChainIdT1, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
     returns   :  ;
 
     inputs    : ticker;
@@ -186,7 +225,7 @@ repeatedGame  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     :-----:
 
-    outputs   : tickerNew, delayedTickerUpdate, chainNew, headOfChainIdT1, attesterHashMapNew ;
+    outputs   : tickerNew, delayedTickerUpdate, chainNew, attesterHashMapNew ;
     returns   :  ;
   |]
 
@@ -196,15 +235,15 @@ repeatedGame  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 -- Follows spec for two players
 twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
-    inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
 
     :-----:
 
-    inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
     feedback  :   ;
     operation : oneRound p0 p1 a10 a20 a11 a21 reward fee ;
-    outputs   : attesterHashMapNew, chainNew, headOfChainIdT1, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
     returns   :  ;
 
     inputs    : ticker;
@@ -213,11 +252,11 @@ twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
     outputs   : tickerNew;
     returns   : ;
 
-    inputs    : ticker,delayedTicker, chainNew, headOfChainIdT1, attesterHashMapNew ;
+    inputs    : ticker,delayedTicker, chainNew, attesterHashMapNew ;
     // NOTE ticker time is ignored here
     feedback  :   ;
     operation : oneRound p1 p2 a11 a21 a12 a22 reward fee ;
-    outputs   : attesterHashMapNew2, chainNew2, headOfChainIdT, delayedTickerUpdate2 ;
+    outputs   : attesterHashMapNew2, chainNew2, delayedTickerUpdate2 ;
     returns   :  ;
 
     inputs    : tickerNew;
@@ -230,7 +269,7 @@ twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
     :-----:
 
-    outputs   : tickerNew2, delayedTickerUpdate2, chainNew2, headOfChainIdT, attesterHashMapNew2 ;
+    outputs   : tickerNew2, delayedTickerUpdate2, chainNew2, attesterHashMapNew2 ;
     returns   :  ;
   |]
 
@@ -239,7 +278,7 @@ twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
 
 
-
+ 
 
 
 
@@ -252,29 +291,29 @@ twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 -- extract continuation
 -- extract continuation
 extractContinuation :: StochasticStatefulOptic
-                         (Timer, Timer, Chain, Id, M.Map Player Id)
+                         (Timer, Timer, Chain, M.Map Player Id)
                          ()
-                         (Timer, Stochastic Timer, Chain, Id, M.Map Player Id)
+                         (Timer, Stochastic Timer, Chain, M.Map Player Id)
                          ()
-                    -> (Timer, Stochastic Timer, Chain, Id, M.Map Player Id)
+                    -> (Timer, Stochastic Timer, Chain, M.Map Player Id)
                     -> StateT Vector Stochastic ()
-extractContinuation (StochasticStatefulOptic v u) (i, j, chain, id,  map) = do
+extractContinuation (StochasticStatefulOptic v u) (i, j, chain, map) = do
   j' <- ST.lift j
-  let x = (i, j', chain, id, map)
+  let x = (i, j', chain, map)
   (z,a) <- ST.lift (v x)
   u z ()
 
 -- extract next state (action)
 extractNextState :: StochasticStatefulOptic
-                       (Timer, Timer, Chain, Id, M.Map Player Id)
+                       (Timer, Timer, Chain, M.Map Player Id)
                        ()
-                       (Timer, Stochastic Timer, Chain, Id,  M.Map Player Id)
+                       (Timer, Stochastic Timer, Chain , M.Map Player Id)
                        ()
-                 -> (Timer, Stochastic Timer, Chain, Id, M.Map Player Id)
-                 -> Stochastic (Timer, Stochastic Timer, Chain, Id, M.Map Player Id)
-extractNextState (StochasticStatefulOptic v _) (i, j, chain, id,  map) = do
+                 -> (Timer, Stochastic Timer, Chain, M.Map Player Id)
+                 -> Stochastic (Timer, Stochastic Timer, Chain, M.Map Player Id)
+extractNextState (StochasticStatefulOptic v _) (i, j, chain, map) = do
   j' <- j
-  let x = (i, j', chain, id, map)
+  let x = (i, j', chain, map)
   (z,a) <- v x
   pure a
 
@@ -291,5 +330,3 @@ executeStrat strat =  play (repeatedGame "proposer" "proposerPast" "attester1" "
 
 -- fix context used for the evaluation
 contextCont iterator strat initialAction = StochasticStatefulContext (pure ((),initialAction)) (\_ action -> determineContinuationPayoffs iterator strat action)
-
-  
