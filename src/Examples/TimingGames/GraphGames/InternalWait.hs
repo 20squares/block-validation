@@ -112,7 +112,7 @@ proposerWait  name = [opengame|
 -- One round game with proposer who can wait
 oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
-    inputs    : ticker, delayedTicker, chainOld, attesterHashMapOld  ;
+    inputs    : ticker, delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld  ;
     // ^ chainOld is the old hash
     feedback  :   ;
 
@@ -145,16 +145,23 @@ oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
     returns   : ;
     // ^ Determines whether attesters from period (t-1) were correct and get rewarded
 
-    inputs    : chainNewUpdated ;
+    inputs    : chainOld, headOfChainIdT2 ;
+    feedback  :   ;
+    operation : oldProposerAddedBlock ;
+    outputs   : blockAddedInT1, headOfChainIdT1;
+    returns   : ;
+    // ^ This determines whether the proposer from period (t-1) did actually add a block or not
+
+    inputs    : blockAddedInT1, chainNewUpdated ;
     feedback  :   ;
     operation : proposerPayment p0 reward ;
     outputs   :  ;
-    returns   : ;
+    returns   :  ;
     // ^ This determines whether the proposer from period (t-1) was correct and triggers payments accordingly
 
     :-----:
 
-    outputs   : attesterHashMapNew, chainNewUpdated, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, chainNewUpdated,  headOfChainIdT1, delayedTickerUpdate ;
     returns   :  ;
   |]
 
@@ -163,15 +170,15 @@ oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 -- Repeated game with proposer who can wait
 repeatedGameWait  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
-    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
 
     :-----:
 
-    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
     operation : oneRoundWait p0 p1 a10 a20 a11 a21 reward fee ;
-    outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, chainNew, headOfChainIdT1, delayedTickerUpdate ;
     returns   :  ;
 
     inputs    : ticker;
@@ -182,7 +189,7 @@ repeatedGameWait  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     :-----:
 
-    outputs   : tickerNew, delayedTickerUpdate, chainNew, attesterHashMapNew ;
+    outputs   : tickerNew, delayedTickerUpdate, chainNew, headOfChainIdT1, attesterHashMapNew ;
     returns   :  ;
   |]
 
@@ -192,15 +199,15 @@ repeatedGameWait  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 -- Follows spec for two players
 twoRoundGameWait  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
-    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
 
     :-----:
 
-    inputs    : ticker,delayedTicker, chainOld, attesterHashMapOld ;
+    inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
     operation : oneRoundWait p0 p1 a10 a20 a11 a21 reward fee ;
-    outputs   : attesterHashMapNew, chainNew, delayedTickerUpdate ;
+    outputs   : attesterHashMapNew, chainNew, headOfChainIdT1, delayedTickerUpdate ;
     returns   :  ;
 
     inputs    : ticker;
@@ -209,11 +216,11 @@ twoRoundGameWait  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
     outputs   : tickerNew;
     returns   : ;
 
-    inputs    : ticker,delayedTicker, chainNew, attesterHashMapNew ;
+    inputs    : ticker,delayedTicker, chainNew, headOfChainIdT1, attesterHashMapNew ;
     // NOTE ticker time is ignored here
     feedback  :   ;
     operation : oneRoundWait p1 p2 a11 a21 a12 a22 reward fee ;
-    outputs   : attesterHashMapNew2, chainNew2, delayedTickerUpdate2 ;
+    outputs   : attesterHashMapNew2, chainNew2, headOfChainIdT, delayedTickerUpdate2 ;
     returns   :  ;
 
     inputs    : tickerNew;
@@ -226,7 +233,7 @@ twoRoundGameWait  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
     :-----:
 
-    outputs   : tickerNew2, delayedTickerUpdate2, chainNew2, attesterHashMapNew2 ;
+    outputs   : tickerNew2, delayedTickerUpdate2, chainNew2, headOfChainIdT, attesterHashMapNew2 ;
     returns   :  ;
   |]
 
