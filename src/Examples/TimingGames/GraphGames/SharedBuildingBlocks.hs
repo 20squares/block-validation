@@ -126,15 +126,37 @@ determineHeadOfChain = [opengame|
   |]
 
 
-proposerPayment name reward = [opengame|
+oldProposerAddedBlock = [opengame|
 
-    inputs    : chainNew ;
+    inputs    : chainOld, headOfChainIdT2 ;
     feedback  :   ;
 
     :-----:
-    inputs    : chainNew ;
+    inputs    : chainOld, headOfChainIdT2 ;
     feedback  :   ;
-    operation : forwardFunction proposedCorrect ;
+    operation : forwardFunction $ uncurry wasBlockSent ;
+    outputs   : correctSent, headOfChainIdT1 ;
+    returns   : ;
+    // ^ This determines whether the proposer actually did send a new block in (t-1)
+    // ^ It also outputs the head of the chain for period t-1 -- as this is needed in the next period
+
+     :-----:
+
+    outputs   : correctSent, headOfChainIdT1 ;
+    returns   :  ;
+  |]
+
+
+  
+proposerPayment name reward = [opengame|
+
+    inputs    : blockAddedInT1, chainNew ;
+    feedback  :   ;
+
+    :-----:
+    inputs    : blockAddedInT1, chainNew ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry proposedCorrect ;
     outputs   : correctSent ;
     returns   : ;
     // ^ This determines whether the proposer was correct in period (t-1)

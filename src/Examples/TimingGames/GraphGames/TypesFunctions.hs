@@ -141,9 +141,18 @@ attestedCorrect name map chain headOfChain =
       in S.member headNode setOnPath
       -- ^ is the head in that successor set?
 
+-- Is there a difference between the head from period t-2 and the head of period t-1?
+-- Is used to determine whether the proposer in t-1 actually did something
+wasBlockSent :: Chain -> Id -> (Bool,Id)
+wasBlockSent chainT1 idT2 =
+  let headT1 = determineHead chainT1
+      wasSent = idT2 + 1 == headT1
+      in (wasSent,headT1)
+
 -- Did the proposer from (t-1) send the block? Gets rewarded if that block is on the path to the current head.
-proposedCorrect :: Chain -> Bool
-proposedCorrect chain  =
+proposedCorrect :: Bool -> Chain -> Bool
+proposedCorrect False _     = False
+proposedCorrect True chain  =
   let currentHeadId = determineHead chain
       currentHead   = findVertexById chain currentHeadId
       oldDecisionProposer = vertexCount chain - 1
