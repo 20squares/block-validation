@@ -16,7 +16,7 @@ import           Preprocessor.Preprocessor
 import           Examples.TimingGames.GraphGames.TypesFunctions
 import           Examples.TimingGames.GraphGames.SharedBuildingBlocks
 
-
+import           Data.Tuple.Extra (uncurry3)
 
 ----------
 -- A Model
@@ -30,15 +30,15 @@ import           Examples.TimingGames.GraphGames.SharedBuildingBlocks
 -- Given the decision by the proposer to either wait or to send a head
 -- the "new" chain is created -- which means either the same as before
 -- or the actually appended version
-addBlockWait = [opengame|
+addBlockWait threshold = [opengame|
 
-    inputs    : chainOld, chosenIdOrWait ;
+    inputs    : ticker, chainOld, chosenIdOrWait ;
     feedback  :   ;
 
     :-----:
-    inputs    : chainOld, chosenIdOrWait ;
+    inputs    : ticker, chainOld, chosenIdOrWait ;
     feedback  :   ;
-    operation : forwardFunction $ uncurry addToChainWait ;
+    operation : forwardFunction $ uncurry3 $ addToChainWaitTimer threshold ;
     outputs   : chainNew ;
     returns   : ;
 
@@ -53,7 +53,7 @@ addBlockWait = [opengame|
 
 -- A proposer observes the ticker and decides to append the block to a node OR not
 -- In other words, the proposer can wait to append the block
-proposerWait  name = [opengame|
+proposerWait treshold name = [opengame|
 
     inputs    : ticker, delayedTicker, chainOld;
     feedback  :   ;
@@ -67,9 +67,9 @@ proposerWait  name = [opengame|
     // ^ decision which hash to send forward (latest element, or second latest element etc.)
     // ^ NOTE fix reward to zero; it is later updated where it is evaluated as correct or false
 
-    inputs    : chainOld, decisionProposer ;
+    inputs    : ticker, chainOld, decisionProposer ;
     feedback  :   ;
-    operation : addBlockWait ;
+    operation : addBlockWait treshold ;
     outputs   : chainNew;
     returns   : ;
     // ^ creates new hash at t=0
@@ -91,14 +91,14 @@ proposerWait  name = [opengame|
 
 
 
-  
+ 
 
 -------------------
 -- 2 Complete games
 -------------------
 
 -- One round game with proposer who can wait
-oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
+oneRoundWait p0 p1 a10 a20 a11 a21 reward fee threshold = [opengame|
 
     inputs    : ticker, delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld  ;
     // ^ chainOld is the old hash
@@ -107,7 +107,7 @@ oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
     :-----:
     inputs    : ticker,delayedTicker,chainOld ;
     feedback  :   ;
-    operation : proposerWait p1;
+    operation : proposerWait threshold p1;
     outputs   : chainNew ;
     returns   : ;
     // ^ Proposer makes a decision, a new hash is proposed
@@ -151,22 +151,22 @@ oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 -- Two round game with proposer who can wait
 -- Follows spec for two players
 -- Tickers are defined externally
-twoRoundGameWaitExogTicker  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee ticker1 delayedTicker1 ticker2 delayedTicker2= [opengame|
+twoRoundGameWaitExogTicker  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 threshold1 threshold2= [opengame|
 
-    inputs    :  chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    :  chainOld, attesterHashMapOld, headOfChainIdT2  ;
     feedback  :   ;
 
     :-----:
 
     inputs    : ticker1,delayedTicker1, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
-    operation : oneRoundWait p0 p1 a10 a20 a11 a21 reward fee ;
+    operation : oneRoundWait p0 p1 a10 a20 a11 a21 reward fee threshold1;
     outputs   : attesterHashMapNew, chainNew, headOfChainIdT1;
     returns   :  ;
 
     inputs    : ticker2,delayedTicker2, chainNew, headOfChainIdT1, attesterHashMapNew ;
     feedback  :   ;
-    operation : oneRoundWait p1 p2 a11 a21 a12 a22 reward fee ;
+    operation : oneRoundWait p1 p2 a11 a21 a12 a22 reward fee threshold2;
     outputs   : attesterHashMapNew2, chainNew2,  headOfChainIdT;
     returns   :  ;
 
@@ -176,5 +176,3 @@ twoRoundGameWaitExogTicker  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee ticker1
     returns   :  ;
   |]
 
-
-  

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
@@ -15,7 +16,7 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 -------------------------
 -- Equilibrium definition
 
-eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 strategy context = generateIsEq $ evaluate (twoRoundGameWaitExogTicker p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2) strategy context
+eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 threshold1 threshold2 strategy context = generateOutput $ evaluate (twoRoundGameWaitExogTicker p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 threshold1 threshold2) strategy context
 
 
 
@@ -32,6 +33,12 @@ strategyProposerWait = Kleisli (\(_,chain) -> pure $ Send $ determineHead chain)
 strategyProposerWait1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
 strategyProposerWait1 = pureAction DoNotSend
 
+-- deviating strategy for propser -- wait until fixed threshold to send
+strategyProposerWaitTreshold :: Timer ->  Kleisli Stochastic (Timer, Chain) (Send Id)
+strategyProposerWaitTreshold treshold = Kleisli (\(timer,chain) ->
+                                           if timer == treshold
+                                              then pure $ Send $ determineHead chain
+                                              else pure DoNotSend)
 
 -- vote for the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
@@ -42,10 +49,17 @@ strategyAttester = Kleisli (\(_,chainNew,_) -> pure $ determineHead chainNew)
 strategyOneRoundWait = strategyProposerWait ::- strategyAttester ::- strategyAttester ::- Nil
 strategyOneRoundWait1 = strategyProposerWait1 ::- strategyAttester ::- strategyAttester  ::- Nil
 
+strategyOneRoundTreshold :: Timer
+                         -> List
+                              '[Kleisli Stochastic (Timer, Chain) (Send Id),
+                                Kleisli Stochastic (Timer, Chain, Chain) Id,
+                                Kleisli Stochastic (Timer, Chain, Chain) Id]
+strategyOneRoundTreshold timer = strategyProposerWaitTreshold timer ::-  strategyAttester ::- strategyAttester  ::- Nil
+
 -- Combining strategies for several stages
 strategyTupleWait = strategyOneRoundWait +:+ strategyOneRoundWait
 strategyTupleWait1 = strategyOneRoundWait1 +:+ strategyOneRoundWait
-
+strategyTupleWaitTreshold timer = strategyOneRoundTreshold timer +:+ strategyOneRoundWait
 
 
 ---------------------
@@ -67,26 +81,26 @@ initialMap = M.fromList [("a10",3),("a20",3)]
 
 -- Initial context for linear chain, all initiated at the same ticker time, and an empty hashMap
 initialContextLinear :: StochasticStatefulContext
-                          (Chain, Id, M.Map Player Id)
+                          (Chain, AttesterMap, Id)
                           ()
-                          (Chain, Id,  AttesterMap)
+                          (Chain, AttesterMap, Id)
                           ()
-initialContextLinear = StochasticStatefulContext (pure ((),(initialChainLinear,(determineHead initialChainLinear), initialMap))) (\_ _ -> pure ())
+initialContextLinear = StochasticStatefulContext (pure ((),(initialChainLinear, initialMap, (determineHead initialChainLinear)))) (\_ _ -> pure ())
 
 
 
 
 initialContextForked :: StochasticStatefulContext
-                          (Chain, Id, M.Map Player Id)
+                          (Chain, AttesterMap, Id )
                           ()
-                          (Chain, Id, M.Map Player Id)
+                          (Chain, AttesterMap, Id)
                           ()
-initialContextForked = StochasticStatefulContext (pure ((),(initialChainForked,(determineHead initialChainForked), initialMap))) (\_ _ -> pure ())
+initialContextForked = StochasticStatefulContext (pure ((),(initialChainForked, initialMap, (determineHead initialChainForked)))) (\_ _ -> pure ())
 
 
 
 -------------------
 -- Scenarios Tested
 {-
-eqTwoRoundGameWait "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0 0 0 0  strategyTupleWait initialContextLinear
+eqTwoRoundGameWait "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0 0 0 0 0 12  strategyTupleWait initialContextLinear
 -}

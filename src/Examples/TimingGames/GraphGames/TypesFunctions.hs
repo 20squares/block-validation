@@ -67,6 +67,17 @@ addToChainWait chain DoNotSend  = chain
 addToChainWait chain (Send id)  = addToChain chain id
 -- ^ Append block to old chain (create new chain)
 
+
+-- Given a previous chain and the decision to append or to wait, a timer and a timer threshold
+-- produce a new chain
+addToChainWaitTimer :: Timer -> Timer -> Chain ->  Send Id -> Chain
+addToChainWaitTimer threshold timer chain decision =
+  if timer == threshold
+     then addToChainWait chain decision
+          -- ^ only at the time of the threshold a new block is added
+     else chain
+          -- ^ otherwise the same block is kept
+
 -- Produces alternatives for proposer
 alternativesProposer :: (Timer, Chain) -> [Send Id]
 alternativesProposer (_,chain) =

@@ -84,4 +84,3 @@ or h(2). This is determined by the GHOST rule. For instance, if A votes h(0), C 
 
 * At that moment the attester 3 and 4 are looking at a two possible heads of the chain
 
-* Also check the not send equilibrium for the linear case actually makes sense
