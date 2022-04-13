@@ -26,7 +26,6 @@ import           Data.Tuple.Extra (uncurry3)
 -- 1 Game blocks
 
 
-
 -- Given the decision by the proposer to either wait or to send a head
 -- the "new" chain is created -- which means either the same as before
 -- or the actually appended version

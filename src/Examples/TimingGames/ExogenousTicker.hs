@@ -19,8 +19,6 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 threshold1 threshold2 strategy context = generateOutput $ evaluate (twoRoundGameWaitExogTicker p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee ticker1 delayedTicker1 ticker2 delayedTicker2 threshold1 threshold2) strategy context
 
 
-
-
 -----------------------
 -- Strategies
 
