@@ -161,7 +161,7 @@ oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     :-----:
 
-    outputs   : attesterHashMapNew, chainNewUpdated,  headOfChainIdT1, delayedTickerUpdate ;
+    outputs   : delayedTickerUpdate,chainNewUpdated,  headOfChainIdT1,  attesterHashMapNew  ;
     returns   :  ;
   |]
 
@@ -207,7 +207,7 @@ twoRoundGameWait  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
     inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
     operation : oneRoundWait p0 p1 a10 a20 a11 a21 reward fee ;
-    outputs   : attesterHashMapNew, chainNew, headOfChainIdT1, delayedTickerUpdate ;
+    outputs   : delayedTickerUpdate, chainNew,  headOfChainIdT1, attesterHashMapNew  ;
     returns   :  ;
 
     inputs    : ticker;
@@ -220,7 +220,7 @@ twoRoundGameWait  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
     // NOTE ticker time is ignored here
     feedback  :   ;
     operation : oneRoundWait p1 p2 a11 a21 a12 a22 reward fee ;
-    outputs   : attesterHashMapNew2, chainNew2, headOfChainIdT, delayedTickerUpdate2 ;
+    outputs   : delayedTickerUpdate2, chainNew2, headOfChainIdT, attesterHashMapNew2 ;
     returns   :  ;
 
     inputs    : tickerNew;

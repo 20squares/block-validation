@@ -37,6 +37,8 @@ type AttesterMap = M.Map Player Id
 -- The chain is represented by the edges (Blocks) and vertices (Which attester voted for that Block to be the head)
 type Chain = Relation (Id,Vote)
 type WeightedChain = Relation (Id,Weight)
+type Fee = Double
+type Reward = Double
 
 ------------------------
 -- 1 Auxiliary functions
@@ -112,12 +114,11 @@ transformTicker x  = x + 1
 
 
 -- find the head of the chain
-determineHead :: Chain -> Id
+determineHead :: Chain -> S.Set Id
 determineHead chain =
   let allBranches = findBranches chain
       weightedBranches = S.map (findPath chain) allBranches
-      (weightMax,idMax) = S.findMax $ S.map (\(x,y) -> (y,x)) weightedBranches
-      in idMax
+      in S.map fst weightedBranches
   where
     -- find all the branches of a chain
     findBranches :: Chain  -> S.Set (Id,Vote)
@@ -135,10 +136,33 @@ determineHead chain =
           in (i,weight + v)
           -- ^ NOTE the value of the last node itself is added as well
 
+-- TODO Correct; just for testing
+findBranches :: Chain  -> S.Set (Id,Vote)
+findBranches chain' =
+  let  vertexSetChain   = vertexSet chain'
+       transChain = transitiveClosure chain'
+       setPreSet = S.unions $ S.map (flip preSet transChain) vertexSetChain
+       in S.difference vertexSetChain setPreSet
+-- find all the paths from each branch to the root of the chain
+findPath :: Chain -> (Id, Vote) -> (Id, Weight)
+findPath chain' (i,v) =
+  let elementsOnPath = preSet (i,v) transitiveChain
+      transitiveChain = transitiveClosure chain'
+      weight = S.foldr (\(_,j) -> (+) j) 0 elementsOnPath
+      in (i,weight + v)
+
+
 -- Is the node the attester voted for on the path to the latest head?
 -- FIXME player name, id not given
-attestedCorrect :: Player -> M.Map Player Id -> Chain -> Id -> Bool
-attestedCorrect name map chain headOfChain =
+attestedCorrect :: Player -> M.Map Player Id -> Chain -> S.Set Id -> Bool
+attestedCorrect name map chain headOfChainS =
+  let headOfChainLs = S.elems headOfChainS
+      in and $ fmap (attestedCorrect' name map chain) headOfChainLs
+
+
+
+attestedCorrect' :: Player -> M.Map Player Id -> Chain -> Id -> Bool
+attestedCorrect' name map chain headOfChain =
   let idChosen = map M.! name
       -- ^ id voted for by player
       chosenNode = findVertexById chain idChosen
@@ -156,7 +180,7 @@ attestedCorrect name map chain headOfChain =
 -- Is used to determine whether the proposer in t-1 actually did something
 wasBlockSent :: Chain -> Id -> (Bool,Id)
 wasBlockSent chainT1 idT2 =
-  let headT1 = determineHead chainT1
+  let headT1 = maximum $ fst <$> vertexList chainT1
       wasSent = idT2 + 1 == headT1
       in (wasSent,headT1)
 
@@ -164,13 +188,18 @@ wasBlockSent chainT1 idT2 =
 proposedCorrect :: Bool -> Chain -> Bool
 proposedCorrect False _     = False
 proposedCorrect True chain  =
-  let currentHeadId = determineHead chain
-      currentHead   = findVertexById chain currentHeadId
+  let currentHeadIdLs = S.elems $ determineHead chain
+      in and $ fmap (proposedCorrect' chain) currentHeadIdLs 
+
+proposedCorrect' :: Chain -> Id -> Bool
+proposedCorrect' chain currentHeadId =
+  let currentHead   = findVertexById chain currentHeadId
       oldDecisionProposer = vertexCount chain - 1
       chainClosure  = closure chain
       onPathElems   = preSet currentHead chainClosure
       pastHead      = findVertexById chain oldDecisionProposer
       in S.member pastHead onPathElems
+
 
 
 -- draw from a timer which determines whether the message is delayed
