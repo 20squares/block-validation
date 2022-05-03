@@ -8,6 +8,7 @@ module Examples.TimingGames.TimingGameGraphsAnalysisWait where
 
 import           Algebra.Graph.Relation
 import qualified Data.Map.Strict      as M
+import qualified Data.Set             as S
 
 import           Engine.Engine
 import           Examples.TimingGames.GraphGames.InternalWait
@@ -29,7 +30,14 @@ eqOneRoundGameWait p0 p1 a10 a20 a11 a21 reward fee strategy context = generateO
 -- build on the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
 strategyProposerWait :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposerWait = Kleisli (\(_,chain) -> pure $ Send $ determineHead chain)
+strategyProposerWait = Kleisli (\(_,chain) ->
+                                  let headS = determineHead chain
+                                      lsHead = S.elems headS
+                                      in if length lsHead == 1
+                                         then pure $ Send $ head lsHead
+                                         else do
+                                               drawHead <- uniformDist lsHead
+                                               pure $ Send drawHead)
 
 -- deviating strategy for proposer -- do not send
 strategyProposerWait1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
@@ -39,7 +47,14 @@ strategyProposerWait1 = pureAction DoNotSend
 -- vote for the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
 strategyAttester :: Kleisli Stochastic (Timer, Chain, Chain) Id
-strategyAttester = Kleisli (\(_,chainNew,_) -> pure $ determineHead chainNew)
+strategyAttester =
+  Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
+                                  lsHead = S.elems headS
+                                   in if length lsHead == 1
+                                         then pure $ head lsHead
+                                         else do
+                                               drawHead <- uniformDist lsHead
+                                               pure $ drawHead)
 
 -- Combining strategies for a single stage -- waiting
 strategyOneRoundWait = strategyProposerWait ::- strategyAttester ::- strategyAttester ::- Nil
@@ -74,7 +89,7 @@ initialContextLinear :: StochasticStatefulContext
                           ()
                           (Timer, Stochastic Int, Chain, Id, AttesterMap)
                           ()
-initialContextLinear = StochasticStatefulContext (pure ((),(0,0,initialChainLinear, (determineHead initialChainLinear), initialMap))) (\_ _ -> pure ())
+initialContextLinear = StochasticStatefulContext (pure ((),(0,0,initialChainLinear, 3, initialMap))) (\_ _ -> pure ())
   
 
 
@@ -85,14 +100,14 @@ initialContextLinear2 :: StochasticStatefulContext
                           ()
                           ()
                           ()
-initialContextLinear2 = StochasticStatefulContext (pure ((),(0,0,0,0,initialChainLinear, (determineHead initialChainLinear), initialMap))) (\_ _ -> pure ())
+initialContextLinear2 = StochasticStatefulContext (pure ((),(0,0,0,0,initialChainLinear, 3, initialMap))) (\_ _ -> pure ())
 
 initialContextForked :: StochasticStatefulContext
                           (Timer, Timer, Chain, Id, M.Map Player Id)
                           ()
                           (Timer, Stochastic Timer, Chain, Id, M.Map Player Id)
                           ()
-initialContextForked = StochasticStatefulContext (pure ((),(0,0,initialChainForked, (determineHead initialChainForked), initialMap))) (\_ _ -> pure ())
+initialContextForked = StochasticStatefulContext (pure ((),(0,0,initialChainForked, 3, initialMap))) (\_ _ -> pure ())
 
 
 
