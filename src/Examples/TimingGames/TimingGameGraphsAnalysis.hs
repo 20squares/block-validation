@@ -11,7 +11,7 @@ import qualified Data.Map.Strict      as M
 
 import           Engine.Engine
 import           Examples.TimingGames.GraphGames.Internal
-import           Examples.TimingGames.GraphGames.TypesFunctions
+import           Examples.TimingGames.GraphGames.TypesFunctions hiding (determineHead)
 
 -------------------------
 -- Equilibrium definition

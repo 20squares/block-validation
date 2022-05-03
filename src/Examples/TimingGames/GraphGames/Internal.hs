@@ -13,7 +13,7 @@ module Examples.TimingGames.GraphGames.Internal where
 
 import           Engine.Engine
 import           Preprocessor.Preprocessor
-import           Examples.TimingGames.GraphGames.TypesFunctions hiding (proposedCorrect)
+import           Examples.TimingGames.GraphGames.TypesFunctions hiding (proposedCorrect, determineHead)
 import           Examples.TimingGames.GraphGames.SharedBuildingBlocks hiding (proposerPayment)
 
 import           Algebra.Graph.Relation
@@ -110,6 +110,32 @@ proposer  name = [opengame|
 --------------------- added for old version overwriting building blocks ------------------------
 -- TODO change repeated version to actual setting once settled
 -- Did the proposer from (t-1) send the block? Gets rewarded if that block is on the path to the current head.
+
+determineHead :: Chain -> Id
+determineHead chain =
+  let allBranches = findBranches chain
+      weightedBranches = S.map (findPath chain) allBranches
+      (weightMax,idMax) = S.findMax $ S.map (\(x,y) -> (y,x)) weightedBranches
+      in idMax
+  where
+    -- find all the branches of a chain
+    findBranches :: Chain  -> S.Set (Id,Vote)
+    findBranches chain' =
+      let  vertexSetChain   = vertexSet chain'
+           transChain = transitiveClosure chain'
+           setPreSet = S.unions $ S.map (flip preSet transChain) vertexSetChain
+           in S.difference vertexSetChain setPreSet
+    -- find all the paths from each branch to the root of the chain
+    findPath :: Chain -> (Id, Vote) -> (Id, Weight)
+    findPath chain' (i,v) =
+      let elementsOnPath = preSet (i,v) transitiveChain
+          transitiveChain = transitiveClosure chain'
+          weight = S.foldr (\(_,j) -> (+) j) 0 elementsOnPath
+          in (i,weight + v)
+          -- ^ NOTE the value of the last node itself is added as well
+
+
+
 proposedCorrect :: Chain -> Bool
 proposedCorrect  chain  =
   let currentHeadId = determineHead chain

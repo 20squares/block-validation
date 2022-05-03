@@ -116,6 +116,8 @@ feedPayoffs p a1 a2 reward successFee (_,newChain,headOfChainIdT1,attesterHashMa
   modify (adjustOrAdd (\x -> x + payoffProposer) payoffProposer p) 
   -- compute payoff for attester in the one round game
 
+------------------------------------------------------------------
+-- TODO delete all below when ready
   -- compute payoff for proposer in the one round game
 testChain :: Chain
 testChain = edges [((1,2),(2,2)),((2,2),(3,2)),((3,2),(4,0)),((3,2),(5,2))]
@@ -134,7 +136,7 @@ testFunction p a1 a2 reward successFee (_,newChain,headOfChainIdT1,attesterHashM
       proposerCorrect   = proposedCorrect blockWasSent newChain
       payoffProposer    = proposerPayoff reward proposerCorrect
       in proposerCorrect 
-
+------------------------------------------------------------------
 -------------------
 -- Scenarios Tested
 {-
