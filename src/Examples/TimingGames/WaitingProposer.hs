@@ -52,6 +52,7 @@ strategyProposerWait1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
 strategyProposerWait1 = pureAction $ Send 3
 
 -- vote for the head which has received the most votes?
+-- in case of a tie, randomize
 -- that is a strategy as targeted by the protocol
 strategyAttester :: Kleisli Stochastic (Timer, Chain, Chain) Id
 strategyAttester =
@@ -121,6 +122,9 @@ feedPayoffs p a1 a2 reward successFee (_,newChain,headOfChainIdT1,attesterHashMa
   -- compute payoff for proposer in the one round game
 testChain :: Chain
 testChain = edges [((1,2),(2,2)),((2,2),(3,2)),((3,2),(4,0)),((3,2),(5,2))]
+
+testChain2 :: Chain
+testChain2 = edges [((1,2),(2,2)),((2,2),(3,2)),((3,2),(4,0)),((4,0),(5,0))]
 
 testMap :: AttesterMap
 testMap = M.fromList [("a10",3),("a20",3),("a11",5),("a21",5)]

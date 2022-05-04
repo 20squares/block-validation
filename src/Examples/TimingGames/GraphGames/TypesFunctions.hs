@@ -120,6 +120,7 @@ determineHead chain =
       weightedBranches = S.map (findPath chain) allBranches
       (weightMax,_) = S.findMax $ S.map (\(x,y) -> (y,x)) weightedBranches
       allMax           = S.filter (\(id,weight) -> weight == weightMax) $ weightedBranches
+      -- ^ This addresses the case where several end branches hold the same weighted votes
       in S.map fst allMax
   where
     -- find all the branches of a chain
