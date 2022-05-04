@@ -77,8 +77,9 @@ strategyOneRoundWait1 = strategyProposerWait1 ::- strategyAttester ::- strategyA
 -- Initial linear chain with two votes per block
 -- NOTE we assume that there is an un-voted block
 -- That was created by the deviating proposer _(4,0)_
+-- The idea is that it was created after the attesters
+-- from that block could actually vote
 initialChainLinear = path [(1,2),(2,2),(3,2),(4,0)]
-
 
 -- Initial hashMap for last rounds players
 -- assuming they both voted for the same block (3)

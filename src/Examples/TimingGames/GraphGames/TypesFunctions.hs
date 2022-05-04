@@ -139,45 +139,31 @@ determineHead chain =
           in (i,weight + v)
           -- ^ NOTE the value of the last node itself is added as well
 
--- TODO Correct; just for testing
-findBranches :: Chain  -> S.Set (Id,Vote)
-findBranches chain' =
-  let  vertexSetChain   = vertexSet chain'
-       transChain = transitiveClosure chain'
-       setPreSet = S.unions $ S.map (flip preSet transChain) vertexSetChain
-       in S.difference vertexSetChain setPreSet
--- find all the paths from each branch to the root of the chain
-findPath :: Chain -> (Id, Vote) -> (Id, Weight)
-findPath chain' (i,v) =
-  let elementsOnPath = preSet (i,v) transitiveChain
-      transitiveChain = transitiveClosure chain'
-      weight = S.foldr (\(_,j) -> (+) j) 0 elementsOnPath
-      in (i,weight + v)
-
 
 -- Is the node the attester voted for on the path to the latest head?
 -- FIXME player name, id not given
+-- NOTE: This allows attesters to cast their votes on previous parts of
+-- the chain which are already "deep in the stack"
+-- This could be restricted to a certain level of depth
 attestedCorrect :: Player -> M.Map Player Id -> Chain -> S.Set Id -> Bool
-attestedCorrect name map chain headOfChainS =
+attestedCorrect name attesterMap chain headOfChainS =
   let headOfChainLs = S.elems headOfChainS
-      in and $ fmap (attestedCorrect' name map chain) headOfChainLs
-
-
-
-attestedCorrect' :: Player -> M.Map Player Id -> Chain -> Id -> Bool
-attestedCorrect' name map chain headOfChain =
-  let idChosen = map M.! name
-      -- ^ id voted for by player
-      chosenNode = findVertexById chain idChosen
-      -- ^ vertex chosen
-      headNode = findVertexById chain headOfChain
-      -- ^ vertex which is head of the chain
-      chainClosure = closure chain
-      -- ^ transitive closure of chain; needed to get all connections
-      setOnPath = postSet chosenNode chainClosure
-      -- ^ elements that are successors of id'
-      in S.member headNode setOnPath
-      -- ^ is the head in that successor set?
+      in and $ fmap (attestedCorrectSingleNode name attesterMap chain) headOfChainLs
+  where
+    attestedCorrectSingleNode :: Player -> M.Map Player Id -> Chain -> Id -> Bool
+    attestedCorrectSingleNode name attesterMap chain headOfChain =
+      let idChosen = attesterMap M.! name
+          -- ^ id voted for by player
+          chosenNode = findVertexById chain idChosen
+          -- ^ vertex chosen
+          headNode = findVertexById chain headOfChain
+          -- ^ vertex which is head of the chain
+          chainClosure = closure chain
+          -- ^ transitive closure of chain; needed to get all connections
+          setOnPath = postSet chosenNode chainClosure
+          -- ^ elements that are successors of id'
+          in S.member headNode setOnPath
+          -- ^ is the head in that successor set?
 
 -- Is there a difference between the head from period t-2 and the head of period t-1?
 -- Is used to determine whether the proposer in t-1 actually did something
@@ -187,21 +173,27 @@ wasBlockSent chainT1 idT2 =
       wasSent = idT2 + 1 == headT1
       in (wasSent,headT1)
 
--- Did the proposer from (t-1) send the block? Gets rewarded if that block is on the path to the current head.
+-- Did the proposer from (t-1) send the block? Gets rewarded if that block is on the path to the current head(s).
 proposedCorrect :: Bool -> Chain -> Bool
 proposedCorrect False _     = False
 proposedCorrect True chain  =
   let currentHeadIdLs = S.elems $ determineHead chain
-      in and $ fmap (proposedCorrect' chain) currentHeadIdLs 
-
-proposedCorrect' :: Chain -> Id -> Bool
-proposedCorrect' chain currentHeadId =
-  let currentHead   = findVertexById chain currentHeadId
-      oldDecisionProposer = vertexCount chain - 1
-      chainClosure  = closure chain
-      onPathElems   = preSet currentHead chainClosure
-      pastHead      = findVertexById chain oldDecisionProposer
-      in S.member pastHead onPathElems
+      in and $ fmap (proposedCorrectSingleNode chain) currentHeadIdLs 
+  where
+    proposedCorrectSingleNode :: Chain -> Id -> Bool
+    proposedCorrectSingleNode chain currentHeadId =
+    -- ^ correctely proposed for a given chain and a given head
+      let currentHead   = findVertexById chain currentHeadId
+          oldDecisionProposer = vertexCount chain - 1
+          -- ^ find the previous decision of the last proposer
+          chainClosure  = closure chain
+          -- ^ transitive closure of chain
+          onPathElems   = preSet currentHead chainClosure
+          -- ^ nodes which are on the path to the current head
+          pastHead      = findVertexById chain oldDecisionProposer
+          -- ^ what is the past node?
+          in S.member pastHead onPathElems
+             -- ^ is the past head on the path to the current node
 
 
 
