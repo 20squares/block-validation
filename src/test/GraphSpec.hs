@@ -6,6 +6,7 @@ module GraphSpec where
 import           Algebra.Graph.Relation
 import           Control.Exception (evaluate)
 import qualified Data.Map.Strict      as M
+import qualified Data.Set             as S
 import           Test.Hspec
 
 import           Examples.TimingGames.GraphGames.TypesFunctions
@@ -24,6 +25,10 @@ spec = do
 testChain = edges [((1,2),(2,2)),((2,2),(3,1)),((3,1),(4,1))]
 
 testChain2 = edges [((1,2),(2,2)),((1,2),(4,0)),((2,2),(3,4)),((3,4),(5,0))]
+
+testChain3 = edges [((1,2),(2,2)),((1,2),(4,0)),((2,2),(3,4)),((3,4),(5,2))]
+
+testChain4 = edges [((1,2),(2,2)),((1,2),(4,7)),((2,2),(3,4)),((3,4),(5,0))]
 
 chainConstruction = describe
   "chain construction" $ do
@@ -69,19 +74,19 @@ attested = describe
    "attested correctly" $ do
      it "attested correctly linear chain" $ do
        shouldBe
-         (attestedCorrect "p1" testMap testChain 4)
+         (attestedCorrect "p1" testMap testChain (S.singleton 4))
          True
      it "attested correctly non-linear chain" $ do
        shouldBe
-         (attestedCorrect "p1" testMap (overlay testChain (edges [((2,2),(5,4))])) 5)
+         (attestedCorrect "p1" testMap (overlay testChain (edges [((2,2),(5,4))])) (S.singleton 5))
          True
      it "attested incorrectly non-linear chain" $ do
        shouldBe
-         (attestedCorrect "p2" testMap (overlay testChain (edges [((2,2),(5,4))])) 5)
+         (attestedCorrect "p2" testMap (overlay testChain (edges [((2,2),(5,4))])) (S.singleton 5))
          False
      it "attested correctly non-linear chain fork" $ do
        shouldBe
-         (attestedCorrect "p3" testMap (overlay testChain (edges [((2,2),(5,4))])) 5)
+         (attestedCorrect "p3" testMap (overlay testChain (edges [((2,2),(5,4))])) (S.singleton 5))
          True
 
 proposed = describe
@@ -125,16 +130,29 @@ proposerAlternatives = describe
 
 
 findHead = describe
-   "find correct head" $ do
+   "find-correct-head" $ do
      it "find head in a linear chain" $ do
        shouldBe
          (determineHead testChain)
-         4
+         (S.singleton 4)
+     it "find head in a linear chain (2)" $ do
+       shouldBe
+         (determineHead testChain2)
+         (S.singleton 5)
+     it "find head in a linear chain (3)" $ do
+       shouldBe
+         (determineHead testChain3)
+         (S.singleton 5)
+     it "find head in a linear chain (4)" $ do
+       shouldBe
+         (determineHead testChain4)
+         (S.singleton 4)
      it "find head in a forked chain" $ do
        shouldBe
          (determineHead (overlay testChain (edges [((2,2),(5,2))])))
-         5
+         (S.fromList [4,5])
      it "find head in a forked chain (2)" $ do
        shouldBe
          (determineHead (overlay testChain (edges [((2,2),(5,0))])))
-         4
+         (S.singleton 4)
+

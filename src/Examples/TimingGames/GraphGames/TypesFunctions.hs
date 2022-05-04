@@ -118,7 +118,9 @@ determineHead :: Chain -> S.Set Id
 determineHead chain =
   let allBranches = findBranches chain
       weightedBranches = S.map (findPath chain) allBranches
-      in S.map fst weightedBranches
+      (weightMax,_) = S.findMax $ S.map (\(x,y) -> (y,x)) weightedBranches
+      allMax           = S.filter (\(id,weight) -> weight == weightMax) $ weightedBranches
+      in S.map fst allMax
   where
     -- find all the branches of a chain
     findBranches :: Chain  -> S.Set (Id,Vote)
