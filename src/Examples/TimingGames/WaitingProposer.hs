@@ -118,30 +118,7 @@ feedPayoffs p a1 a2 reward successFee (_,newChain,headOfChainIdT1,attesterHashMa
   modify (adjustOrAdd (\x -> x + payoffProposer) payoffProposer p) 
   -- compute payoff for attester in the one round game
 
-------------------------------------------------------------------
--- TODO delete all below when ready
-  -- compute payoff for proposer in the one round game
-testChain :: Chain
-testChain = edges [((1,2),(2,2)),((2,2),(3,2)),((3,2),(4,0)),((3,2),(5,2))]
 
-testChain2 :: Chain
-testChain2 = edges [((1,2),(2,2)),((2,2),(3,2)),((3,2),(4,0)),((4,0),(5,0))]
-
-testMap :: AttesterMap
-testMap = M.fromList [("a10",3),("a20",3),("a11",5),("a21",5)]
-
---testFunction :: Player -> Player -> Player -> Reward -> Fee -> (Stochastic Timer, Chain, Id, AttesterMap) -> Bool
-testFunction p a1 a2 reward successFee (_,newChain,headOfChainIdT1,attesterHashMapNew) =
-  let headOfChainNew    = determineHead newChain
-      attestedCorrectA1 = attestedCorrect a1 attesterHashMapNew newChain headOfChainNew
-      attestedCorrectA2 = attestedCorrect a2 attesterHashMapNew newChain headOfChainNew
-      payoffA1          = attesterPayoff successFee attestedCorrectA1
-      payoffA2          = attesterPayoff successFee attestedCorrectA2
-      (blockWasSent,_)  = wasBlockSent newChain headOfChainIdT1
-      proposerCorrect   = proposedCorrect blockWasSent newChain
-      payoffProposer    = proposerPayoff reward proposerCorrect
-      in proposerCorrect 
-------------------------------------------------------------------
 -------------------
 -- Scenarios Tested
 {-
