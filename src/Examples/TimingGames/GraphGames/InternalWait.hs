@@ -24,6 +24,8 @@ import           Examples.TimingGames.GraphGames.SharedBuildingBlocks
 
 -- TODO Put proposers' decisions also in a map; to have access to earlier player ids
 -- TODO For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?
+-- TODO Revisit shared building blocks -- reduce model to a single model to expose to the outside world
+-- TODO Go through the naming of blocks and revisit them
 
 
 ----------

@@ -45,7 +45,7 @@ attester name = [opengame|
     operation : dependentDecision name (\(ticker, chainNew, chainOld) -> [1, vertexCount chainNew]) ;
     outputs   : attestedIndex ;
     returns   : 0 ;
-    // ^ the attester either can send the newHash or the oldHash
+    // ^ the attester picks a vertex to vote on -- as the head of the chain
     // ^ NOTE the payoff for the attester comes from the next period
 
     :-----:
