@@ -26,6 +26,7 @@ import           Data.Tuple.Extra (uncurry3)
 
 -- TODO Put proposers' decisions also in a map; to have access to earlier player ids
 -- TODO For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?
+-- TODO All the components should be here
 
 
 ----------
