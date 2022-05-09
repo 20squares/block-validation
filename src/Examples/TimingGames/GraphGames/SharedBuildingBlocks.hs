@@ -18,7 +18,6 @@ import           Preprocessor.Preprocessor
 import           Examples.TimingGames.GraphGames.TypesFunctions
 
 import           Algebra.Graph.Relation
-import           Data.Tuple.Extra (uncurry3)
 
 --------------------------------------------
 -- Multiplayer version of the protocol
@@ -32,6 +31,29 @@ import           Data.Tuple.Extra (uncurry3)
 ----------
 -- A Model
 ----------
+
+
+-- Given the decision by the proposer to either wait or to send a head
+-- the "new" chain is created -- which means either the same as before
+-- or the actually appended version
+addBlockWait = [opengame|
+
+    inputs    : chainOld, chosenIdOrWait ;
+    feedback  :   ;
+
+    :-----:
+    inputs    : chainOld, chosenIdOrWait ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry addToChainWait ;
+    outputs   : chainNew ;
+    returns   : ;
+
+    :-----:
+
+    outputs   : chainNew ;
+    returns   :          ;
+  |]
+
 
 
 -- The attester observes the sent hash, the old hash, the timer, and can then decide which node to attest as the head
@@ -55,6 +77,59 @@ attester name = [opengame|
     returns   :  ;
   |]
 
+
+  
+-- A proposer observes the ticker and decides to append the block to a node OR not
+-- In other words, the proposer can wait to append the block
+proposerWait  name = [opengame|
+
+    inputs    : ticker, delayedTicker, chainOld;
+    feedback  :   ;
+
+    :-----:
+    inputs    : ticker, chainOld ;
+    feedback  :   ;
+    operation : dependentDecision name  alternativesProposer;
+    outputs   : decisionProposer ;
+    returns   : 0;
+    // ^ decision which hash to send forward (latest element, or second latest element etc.)
+    // ^ NOTE fix reward to zero; it is later updated where it is evaluated as correct or false
+
+    inputs    : chainOld, decisionProposer ;
+    feedback  :   ;
+    operation : addBlockWait ;
+    outputs   : chainNew;
+    returns   : ;
+    // ^ creates new hash at t=0
+
+
+    inputs    : ticker, delayedTicker ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry delaySendTime ;
+    outputs   : delayedTickerUpdate ;
+    returns   : ;
+    // ^ determines whether message is delayed or not
+
+    inputs    : ticker, delayedTicker, chainOld, chainNew ;
+    feedback  :   ;
+    operation : forwardFunction $ delayMessage ;
+    outputs   : messageChain ;
+    returns   : ;
+    // ^ for a given timer, determines whether the block is decisionProposer or not
+
+    :-----:
+
+    outputs   : messageChain, delayedTickerUpdate ;
+    // ^ newchain (if timer allows otherwise old chain), update on delayedticker, decisionProposer
+    returns   :  ;
+  |]
+
+
+
+  
+
+
+  
 updatePayoffAttester name fee  = [opengame|
     inputs    : bool ;
     feedback  :   ;
@@ -177,105 +252,4 @@ proposerPayment name reward = [opengame|
   |]
 
 
-
-----------------------
--- 2 Group Game blocks
-
--- Group all attesters together
-attestersGroupDecision :: Player
-                       -> Player
-                       ->  OpenGame
-                            StochasticStatefulOptic
-                            StochasticStatefulContext
-                            ('[Kleisli Stochastic (Timer, Relation (Id, Vote), Chain) Int,
-                                Kleisli Stochastic (Timer, Relation (Id, Vote), Chain) Int])
-                            ('[[DiagnosticInfoBayesian (Timer, Relation (Id, Vote), Chain) Int],
-                                [DiagnosticInfoBayesian (Timer, Relation (Id, Vote), Chain) Int]])
-                            (Timer, Relation (Id, Vote), Chain, AttesterMap)
-                            ()
-                            (AttesterMap, Chain)
-                            ()
-attestersGroupDecision name1 name2 = [opengame|
-
-    inputs    : ticker,chainNew,chainOld, attesterHashMapOld ;
-    feedback  :   ;
-
-    :-----:
-
-    inputs    : ticker, chainNew, chainOld ;
-    feedback  :   ;
-    operation : attester name1  ;
-    outputs   : attested1 ;
-    returns   : ;
-    // ^ Attester1 makes a decision
-
-    inputs    : ticker, chainNew, chainOld ;
-    feedback  :   ;
-    operation : attester name2  ;
-    outputs   : attested2 ;
-    returns   : ;
-    // ^ Attester2 makes a decision
-
-    inputs    : [(name1,attested1),(name2,attested2)], attesterHashMapOld ;
-    feedback  : ;
-    operation : forwardFunction $ uncurry newAttesterMap ;
-    outputs   : attesterHashMap ;
-    returns   : ;
-    // ^ Creates a map of which attester voted for which index
-
-    inputs    : chainNew, [attested1,attested2] ;
-    feedback  : ;
-    operation : forwardFunction $ uncurry updateVotes ;
-    outputs   : chainNewUpdated;
-    returns   : ;
-    // ^ Updates the chain with the relevant votes
-
-
-    :-----:
-
-    outputs   : attesterHashMap, chainNewUpdated;
-    returns   :  ;
-  |]
-
--- Group payments by attesters
-attestersPayment name1 name2 fee = [opengame|
-
-    inputs    : attesterHashMap, chainNew, headId;
-    feedback  :   ;
-
-    :-----:
-    inputs    : attesterHashMap, chainNew, headId ;
-    feedback  :   ;
-    operation : forwardFunction $ uncurry3 $ attestedCorrect name1 ;
-    outputs   : correctAttested1 ;
-    returns   : ;
-    // ^ This determines whether attester 1 was correct in period (t-1) using the latest hash and the old information
-
-    inputs    : attesterHashMap, chainNew, headId ;
-    feedback  :   ;
-    operation : forwardFunction $ uncurry3 $ attestedCorrect name2 ;
-    outputs   : correctAttested2 ;
-    returns   : ;
-    // ^ This determines whether attester 2 was correct in period (t-1)
-
-
-    inputs    : correctAttested1 ;
-    feedback  :   ;
-    operation : updatePayoffAttester name1 fee ;
-    outputs   : ;
-    returns   : ;
-    // ^ Updates the payoff of attester 1 given decision in period (t-1)
-
-    inputs    : correctAttested2 ;
-    feedback  :   ;
-    operation : updatePayoffAttester name2 fee ;
-    outputs   : ;
-    returns   : ;
-    // ^ Updates the payoff of attester 2 given decision in period (t-1)
-
-        :-----:
-
-    outputs   :  ;
-    returns   :  ;
-  |]
 
