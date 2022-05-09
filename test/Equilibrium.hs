@@ -14,12 +14,10 @@
 module Equilibrium where 
 
 import ChainEquilibrium
-import OverlappingTickerEquilibrium
 
 import           Test.QuickCheck
 
 main = do
   verboseCheck prop_eqForallInitialChains
   verboseCheck (prop_noEqDeviatingProp initialChainLinear)
-  verboseCheck prop_eqForallTickers
 
