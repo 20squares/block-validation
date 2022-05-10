@@ -8,7 +8,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Examples.TimingGames.GraphGames.InternalWait where
+module Examples.TimingGames.GraphGames.Internal where
 
 
 import           Engine.Engine
@@ -25,10 +25,7 @@ import           Data.Tuple.Extra (uncurry3)
 -- State for each game is a model of a chain
 -- Proposer has the possibility to not add to the chain
 
--- TODO Put proposers' decisions also in a map; to have access to earlier player ids
 -- TODO For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?
--- TODO Revisit shared building blocks -- reduce model to a single model to expose to the outside world
--- TODO Go through the naming of blocks and revisit them
 
 
 ----------
@@ -39,19 +36,6 @@ import           Data.Tuple.Extra (uncurry3)
 -- 1 Group Game blocks
 
 -- Group all attesters together
-attestersGroupDecision :: Player
-                       -> Player
-                       ->  OpenGame
-                            StochasticStatefulOptic
-                            StochasticStatefulContext
-                            ('[Kleisli Stochastic (Timer, Relation (Id, Vote), Chain) Int,
-                                Kleisli Stochastic (Timer, Relation (Id, Vote), Chain) Int])
-                            ('[[DiagnosticInfoBayesian (Timer, Relation (Id, Vote), Chain) Int],
-                                [DiagnosticInfoBayesian (Timer, Relation (Id, Vote), Chain) Int]])
-                            (Timer, Relation (Id, Vote), Chain, AttesterMap)
-                            ()
-                            (AttesterMap, Chain)
-                            ()
 attestersGroupDecision name1 name2 = [opengame|
 
     inputs    : ticker,chainNew,chainOld, attesterHashMapOld ;
@@ -199,7 +183,7 @@ oneRoundWait p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
 
 -- Repeated game with proposer who can wait
-repeatedGameWait  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
+repeatedGame  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
@@ -228,7 +212,7 @@ repeatedGameWait  p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
 -- Two round game with proposer who can wait
 -- Follows spec for two players
-twoRoundGameWait  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
+twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee = [opengame|
 
     inputs    : ticker,delayedTicker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;

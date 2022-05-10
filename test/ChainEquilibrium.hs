@@ -17,8 +17,8 @@ module ChainEquilibrium
  , initialChainLinear)
 where 
 
-import           Examples.TimingGames.GraphGames.InternalWait
-import           Examples.TimingGames.TimingGameGraphsAnalysisWait
+import           Examples.TimingGames.GraphGames.Internal
+import           Examples.TimingGames.Analysis
 import           Examples.TimingGames.GraphGames.TypesFunctions
 import           Engine.Engine
 
@@ -71,7 +71,7 @@ drawChain = fmap path
 eqForallInitialChains initialChain = 
   checkEq initialChain  == True
   where
-   checkEq initialChain =  generateEquilibrium $  evaluate (twoRoundGameWait "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2) strategyTupleWait context
+   checkEq initialChain =  generateEquilibrium $  evaluate (twoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2) strategyTuple context
    context =  StochasticStatefulContext (pure ((),(0,0,initialChain,3,initialMap))) (\_ _ -> pure ())
    initialMap = M.fromList [("a10",3),("a20",3)]
 
@@ -91,13 +91,13 @@ strategyProposerDeviate id = pureAction $ Send id
 strategyOneRoundDeviate id = strategyProposerDeviate id ::- strategyAttester ::- strategyAttester ::- Nil
 
 -- Combining strategies for several stages
-strategyTupleDeviate id = strategyOneRoundDeviate id +:+ strategyOneRoundWait
+strategyTupleDeviate id = strategyOneRoundDeviate id +:+ strategyOneRound
 
 -- Extract non-equilibrium for proposer
 noEqDeviatingProp initialChain id=
   checkEq == False
   where
-   checkEq = generateEquilibrium $  evaluate (twoRoundGameWait "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2) (strategyTupleDeviate id) context
+   checkEq = generateEquilibrium $  evaluate (twoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2) (strategyTupleDeviate id) context
    context =  StochasticStatefulContext (pure ((),(0,0,initialChain,3,initialMap))) (\_ _ -> pure ())
    initialMap = M.fromList [("a10",3),("a20",3)]
 

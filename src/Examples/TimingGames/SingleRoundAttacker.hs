@@ -5,7 +5,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 
-module Examples.TimingGames.WaitingProposer where
+module Examples.TimingGames.SingleRoundAttacker where
 
 
 import           Algebra.Graph.Relation
@@ -15,7 +15,7 @@ import qualified Data.Set             as S
 
 import           Data.Utils
 import           Engine.Engine
-import           Examples.TimingGames.GraphGames.InternalWait
+import           Examples.TimingGames.GraphGames.Internal
 import           Examples.TimingGames.GraphGames.TypesFunctions
 
 ---------------------------------------------------------------
@@ -36,8 +36,8 @@ eqOneRoundGameWait p0 p1 a10 a20 a11 a21 reward fee strategy context = generateO
 
 -- build on the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
-strategyProposerWait :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposerWait = Kleisli (\(_,chain) ->
+strategyProposer :: Kleisli Stochastic (Timer, Chain) (Send Id)
+strategyProposer = Kleisli (\(_,chain) ->
                                   let headS = determineHead chain
                                       lsHead = S.elems headS
                                       in if length lsHead == 1
@@ -48,8 +48,8 @@ strategyProposerWait = Kleisli (\(_,chain) ->
 
 
 -- deviating strategy for proposer -- do not send
-strategyProposerWait1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposerWait1 = pureAction $ Send 3
+strategyProposer1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
+strategyProposer1 = pureAction $ Send 3
 
 -- vote for the head which has received the most votes?
 -- in case of a tie, randomize
@@ -67,8 +67,8 @@ strategyAttester =
 
 
 -- Combining strategies for a single stage -- waiting
-strategyOneRoundWait = strategyProposerWait ::- strategyAttester ::- strategyAttester ::- Nil
-strategyOneRoundWait1 = strategyProposerWait1 ::- strategyAttester ::- strategyAttester  ::- Nil
+strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::- Nil
+strategyOneRound1 = strategyProposer1 ::- strategyAttester ::- strategyAttester  ::- Nil
 
 
 ---------------------

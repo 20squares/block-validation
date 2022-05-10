@@ -42,8 +42,8 @@ library:
     - Examples.Markov.TwoStageMarkov
     - Examples.Markov.TestSimpleMonteCarlo
     - Examples.Markov.TestSimpleMonteCarlo.Continuation
-    - Examples.TimingGames.GraphGames.InternalWait
-    - Examples.TimingGames.TimingGameGraphsAnalysisWait
+    - Examples.TimingGames.GraphGames.Internal
+    - Examples.TimingGames.Analysis
     - Examples.TimingGames.GraphGames.TypesFunctions
     - Graphics
 

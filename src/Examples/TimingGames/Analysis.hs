@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.TimingGames.TimingGameGraphsAnalysisWait where
+module Examples.TimingGames.Analysis where
 
 
 import           Algebra.Graph.Relation
@@ -11,16 +11,16 @@ import qualified Data.Map.Strict      as M
 import qualified Data.Set             as S
 
 import           Engine.Engine
-import           Examples.TimingGames.GraphGames.InternalWait
+import           Examples.TimingGames.GraphGames.Internal
 import           Examples.TimingGames.GraphGames.TypesFunctions
 
 -------------------------
 -- Equilibrium definition
 
 -- eq definition
-eqTwoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee strategy context = generateOutput $ evaluate (twoRoundGameWait p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee) strategy context
+eqTwoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee strategy context = generateOutput $ evaluate (twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee) strategy context
 
-eqOneRoundGameWait p0 p1 a10 a20 a11 a21 reward fee strategy context = generateOutput $ evaluate (repeatedGameWait p0 p1 a10 a20 a11 a21 reward fee) strategy context
+eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee strategy context = generateOutput $ evaluate (repeatedGame p0 p1 a10 a20 a11 a21 reward fee) strategy context
 
 
 
@@ -29,8 +29,8 @@ eqOneRoundGameWait p0 p1 a10 a20 a11 a21 reward fee strategy context = generateO
 
 -- build on the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
-strategyProposerWait :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposerWait = Kleisli (\(_,chain) ->
+strategyProposer :: Kleisli Stochastic (Timer, Chain) (Send Id)
+strategyProposer = Kleisli (\(_,chain) ->
                                   let headS = determineHead chain
                                       lsHead = S.elems headS
                                       in if length lsHead == 1
@@ -40,8 +40,8 @@ strategyProposerWait = Kleisli (\(_,chain) ->
                                                pure $ Send drawHead)
 
 -- deviating strategy for proposer -- do not send
-strategyProposerWait1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposerWait1 = pureAction DoNotSend
+strategyProposer1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
+strategyProposer1 = pureAction DoNotSend
 
 
 -- vote for the head which has received the most votes?
@@ -57,12 +57,12 @@ strategyAttester =
                                                pure $ drawHead)
 
 -- Combining strategies for a single stage -- waiting
-strategyOneRoundWait = strategyProposerWait ::- strategyAttester ::- strategyAttester ::- Nil
-strategyOneRoundWait1 = strategyProposerWait1 ::- strategyAttester ::- strategyAttester  ::- Nil
+strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::- Nil
+strategyOneRound1 = strategyProposer1 ::- strategyAttester ::- strategyAttester  ::- Nil
 
 -- Combining strategies for several stages
-strategyTupleWait = strategyOneRoundWait +:+ strategyOneRoundWait
-strategyTupleWait1 = strategyOneRoundWait1 +:+ strategyOneRoundWait
+strategyTuple = strategyOneRound +:+ strategyOneRound
+strategyTuple1 = strategyOneRound1 +:+ strategyOneRound
 
 
 
@@ -118,5 +118,5 @@ eqTwoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTu
 
 eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneRound initialContextForked
 
-eqTwoRoundGameWait "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTupleWait initialContextLinear
+eqTwoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTuple initialContextLinear
 -}

@@ -1,13 +1,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WaitTimeEqSpec where
+module EqSpec where
 
 import           Test.Hspec
 
 import           Engine.Engine
-import           Examples.TimingGames.TimingGameGraphsAnalysisWait
-import           Examples.TimingGames.GraphGames.InternalWait
+import           Examples.TimingGames.Analysis
+import           Examples.TimingGames.GraphGames.Internal
 
 
 spec :: Spec
