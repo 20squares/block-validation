@@ -36,7 +36,7 @@ import           Algebra.Graph.Relation
 -- Given the decision by the proposer to either wait or to send a head
 -- the "new" chain is created -- which means either the same as before
 -- or the actually appended version
-addBlockWait = [opengame|
+addBlock = [opengame|
 
     inputs    : chainOld, chosenIdOrWait ;
     feedback  :   ;
@@ -78,12 +78,13 @@ attester name = [opengame|
   |]
 
 
-  
+
 -- A proposer observes the ticker and decides to append the block to a node OR not
 -- In other words, the proposer can wait to append the block
-proposerWait  name = [opengame|
+-- The _delayedTicker_ is an additional parameter fed into the game, 
+proposer  name delayThreshold = [opengame|
 
-    inputs    : ticker, delayedTicker, chainOld;
+    inputs    : ticker, chainOld;
     feedback  :   ;
 
     :-----:
@@ -97,39 +98,27 @@ proposerWait  name = [opengame|
 
     inputs    : chainOld, decisionProposer ;
     feedback  :   ;
-    operation : addBlockWait ;
+    operation : addBlock ;
     outputs   : chainNew;
     returns   : ;
     // ^ creates new hash at t=0
 
-
-    inputs    : ticker, delayedTicker ;
+    inputs    : ticker, chainOld, chainNew ;
     feedback  :   ;
-    operation : forwardFunction $ uncurry delaySendTime ;
-    outputs   : delayedTickerUpdate ;
-    returns   : ;
-    // ^ determines whether message is delayed or not
-
-    inputs    : ticker, delayedTicker, chainOld, chainNew ;
-    feedback  :   ;
-    operation : forwardFunction $ delayMessage ;
+    operation : forwardFunction $ delayMessage delayThreshold ;
     outputs   : messageChain ;
     returns   : ;
     // ^ for a given timer, determines whether the block is decisionProposer or not
 
     :-----:
 
-    outputs   : messageChain, delayedTickerUpdate ;
+    outputs   : messageChain ;
     // ^ newchain (if timer allows otherwise old chain), update on delayedticker, decisionProposer
     returns   :  ;
   |]
 
 
-
-  
-
-
-  
+-- Update the payoff of the attester conditional on the correctness of his action
 updatePayoffAttester name fee  = [opengame|
     inputs    : bool ;
     feedback  :   ;
@@ -156,6 +145,7 @@ updatePayoffAttester name fee  = [opengame|
 
   |]
 
+-- Update the payoff of the proposer conditional on the correctness of his decision
 updatePayoffProposer name reward  = [opengame|
     inputs    : bool ;
     feedback  :   ;
@@ -182,6 +172,7 @@ updatePayoffProposer name reward  = [opengame|
 
   |]
 
+-- Determines the head of the chain
 determineHeadOfChain = [opengame|
     inputs    : chain ;
     feedback  :   ;
@@ -192,8 +183,6 @@ determineHeadOfChain = [opengame|
     operation : forwardFunction $ determineHead ;
     outputs   : head ;
     returns   : ;
-    // ^ Determines the head of the chain
-
     :-----:
 
     outputs   : head ;
@@ -201,7 +190,8 @@ determineHeadOfChain = [opengame|
 
   |]
 
-
+-- Determines whether the proposer actually did send a new block in (t-1).
+-- It also outputs the head of the chain for period (t-1) -- as this is needed in the next period
 oldProposerAddedBlock = [opengame|
 
     inputs    : chainOld, headOfChainIdT2 ;
@@ -213,9 +203,6 @@ oldProposerAddedBlock = [opengame|
     operation : forwardFunction $ uncurry wasBlockSent ;
     outputs   : correctSent, headOfChainIdT1 ;
     returns   : ;
-    // ^ This determines whether the proposer actually did send a new block in (t-1)
-    // ^ It also outputs the head of the chain for period t-1 -- as this is needed in the next period
-
      :-----:
 
     outputs   : correctSent, headOfChainIdT1 ;
@@ -223,7 +210,7 @@ oldProposerAddedBlock = [opengame|
   |]
 
 
-  
+-- Determines whether the proposer was correct and triggers payment accordingly
 proposerPayment name reward = [opengame|
 
     inputs    : blockAddedInT1, chainNew ;

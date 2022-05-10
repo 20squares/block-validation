@@ -28,7 +28,7 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 -------------------------
 -- Equilibrium definition
 
-eqOneRoundGameWait p0 p1 a10 a20 a11 a21 reward fee strategy context = generateOutput $ evaluate (oneRoundWait p0 p1 a10 a20 a11 a21 reward fee) strategy context
+eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateOutput $ evaluate (oneRound p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
 
 
 -----------------------
@@ -51,11 +51,21 @@ strategyProposer = Kleisli (\(_,chain) ->
 strategyProposer1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
 strategyProposer1 = pureAction $ Send 3
 
--- vote for the head which has received the most votes?
--- in case of a tie, randomize
--- that is a strategy as targeted by the protocol
+-- vote for the head which has received the most votes
+-- in case of a tie, choose the block from last round
 strategyAttester :: Kleisli Stochastic (Timer, Chain, Chain) Id
 strategyAttester =
+  Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
+                                  lsHead = S.elems headS
+                                   in if length lsHead == 1
+                                         then pure $ head lsHead
+                                         else do
+                                               pure $ 4)
+
+-- vote for the head which has received the most votes?
+-- in case of a tie, randomize
+strategyAttester1 :: Kleisli Stochastic (Timer, Chain, Chain) Id
+strategyAttester1 =
   Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
                                   lsHead = S.elems headS
                                    in if length lsHead == 1
@@ -64,12 +74,10 @@ strategyAttester =
                                                drawHead <- uniformDist lsHead
                                                pure $ drawHead)
 
-
-
 -- Combining strategies for a single stage -- waiting
 strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::- Nil
 strategyOneRound1 = strategyProposer1 ::- strategyAttester ::- strategyAttester  ::- Nil
-
+strategyOneRound2 = strategyProposer1 ::- strategyAttester1 ::- strategyAttester1  ::- Nil
 
 ---------------------
 -- Initial conditions
@@ -96,15 +104,15 @@ initialContextLinear :: Player
                      -> Reward
                      -> Fee
                      -> StochasticStatefulContext
-                          (Timer, Timer, Chain, Id, AttesterMap)
+                          (Timer, Chain, Id, AttesterMap)
                           ()
-                          (Stochastic Timer, Chain, Id, AttesterMap)
+                          (Chain, Id, AttesterMap)
                           ()
-initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(0,0,initialChainLinear, 3, initialMap))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
+initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(0, initialChainLinear, 3, initialMap))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
 
 -- We need to embed the future reward for the players of that single round
-feedPayoffs :: Player -> Player -> Player -> Reward -> Fee -> (Stochastic Timer, Chain, Id, AttesterMap) -> StateT Vector Stochastic ()
-feedPayoffs p a1 a2 reward successFee (_,newChain,headOfChainIdT1,attesterHashMapNew) = do
+feedPayoffs :: Player -> Player -> Player -> Reward -> Fee -> (Chain, Id, AttesterMap) -> StateT Vector Stochastic ()
+feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,attesterHashMapNew) = do
   let headOfChainNew    = determineHead newChain
       attestedCorrectA1 = attestedCorrect a1 attesterHashMapNew newChain headOfChainNew
       attestedCorrectA2 = attestedCorrect a2 attesterHashMapNew newChain headOfChainNew
@@ -122,5 +130,5 @@ feedPayoffs p a1 a2 reward successFee (_,newChain,headOfChainIdT1,attesterHashMa
 -------------------
 -- Scenarios Tested
 {-
-eqOneRoundGameWait "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneRoundWait (initialContextLinear "p1" "a11" "a21" 2 2)
+eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneRound (initialContextLinear "p1" "a11" "a21" 2 2)
 -}

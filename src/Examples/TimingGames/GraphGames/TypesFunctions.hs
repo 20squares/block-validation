@@ -196,18 +196,13 @@ proposedCorrect True chain  =
              -- ^ is the past head on the path to the current node
 
 
-
--- draw from a timer which determines whether the message is delayed
-delaySendTime :: Int -> Int ->  Stochastic Int
-delaySendTime actualTimer delayedTimer
-  | actualTimer ==  0       = distFromList [(0,0.5),(5,0.5)]
-  | delayedTimer == 5 = playDeterministically delayedTimer
-  | otherwise         = playDeterministically actualTimer
-
--- given timers send old message or new message
-delayMessage :: (Timer, Timer, Chain, Chain) -> Chain
-delayMessage (actualTimer, delayedTimer, oldChain, newChain)
-  | actualTimer < delayedTimer = oldChain
+-- Given an exogenous threshold, the message will be delayed if before the threshold
+-- NOTE: The threshold could be determined internally by a stochastic process
+-- But for isolating the reasoning about it, probably better to feed it as
+-- and explicit parameter
+delayMessage :: Timer -> (Timer, Chain, Chain) -> Chain
+delayMessage delayTreshold (actualTimer, oldChain, newChain)
+  | actualTimer < delayTreshold = oldChain
   | otherwise                  = newChain
 
 -- transform list to Map; done here due to restrictions of DSL

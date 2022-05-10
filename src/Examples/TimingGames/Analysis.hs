@@ -18,10 +18,7 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 -- Equilibrium definition
 
 -- eq definition
-eqTwoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee strategy context = generateOutput $ evaluate (twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee) strategy context
-
-eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee strategy context = generateOutput $ evaluate (repeatedGame p0 p1 a10 a20 a11 a21 reward fee) strategy context
-
+eqTwoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee delayTreshold strategy context = generateIsEq $ evaluate (twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee delayTreshold) strategy context
 
 
 -----------------------
@@ -85,38 +82,14 @@ initialMap = M.fromList [("a10",3),("a20",3)]
 
 -- Initial context for linear chain, all initiated at the same ticker time, and an empty hashMap
 initialContextLinear :: StochasticStatefulContext
-                          (Timer, Timer, Chain, Id, M.Map Player Id)
+                          (Timer, Chain, Id, M.Map Player Id)
                           ()
-                          (Timer, Stochastic Int, Chain, Id, AttesterMap)
+                          (Timer, Chain, Id, AttesterMap)
                           ()
-initialContextLinear = StochasticStatefulContext (pure ((),(0,0,initialChainLinear, 3, initialMap))) (\_ _ -> pure ())
-  
-
-
-
-
-initialContextLinear2 :: StochasticStatefulContext
-                          (Timer, Timer, Timer, Timer, Chain, Id, M.Map Player Id)
-                          ()
-                          ()
-                          ()
-initialContextLinear2 = StochasticStatefulContext (pure ((),(0,0,0,0,initialChainLinear, 3, initialMap))) (\_ _ -> pure ())
-
-initialContextForked :: StochasticStatefulContext
-                          (Timer, Timer, Chain, Id, M.Map Player Id)
-                          ()
-                          (Timer, Stochastic Timer, Chain, Id, M.Map Player Id)
-                          ()
-initialContextForked = StochasticStatefulContext (pure ((),(0,0,initialChainForked, 3, initialMap))) (\_ _ -> pure ())
-
-
+initialContextLinear = StochasticStatefulContext (pure ((),(0,initialChainLinear, 3, initialMap))) (\_ _ -> pure ())
 
 -------------------
 -- Scenarios Tested
 {-
-eqTwoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTuple initialContextLinear
-
-eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneRound initialContextForked
-
-eqTwoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 strategyTuple initialContextLinear
+eqTwoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0 strategyTuple initialContextLinear
 -}
