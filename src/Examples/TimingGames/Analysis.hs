@@ -24,8 +24,9 @@ eqTwoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee delayTreshold strateg
 -----------------------
 -- Strategies
 
--- build on the head which has received the most votes?
--- that is a strategy as targeted by the protocol
+-- Attach a new block on the head which has received the most votes.
+-- If there are multiple heads with the same number of votes, randomize uniformly.
+-- NOTE: This models a strategy of an honest proposer targeted by the protocol
 strategyProposer :: Kleisli Stochastic (Timer, Chain) (Send Id)
 strategyProposer = Kleisli (\(_,chain) ->
                                   let headS = determineHead chain
@@ -35,16 +36,13 @@ strategyProposer = Kleisli (\(_,chain) ->
                                          else do
                                                drawHead <- uniformDist lsHead
                                                pure $ Send drawHead)
+                                         -- ^ Under normal working conditions of the protocol, that conditional will never kick in
 
--- deviating strategy for proposer -- do not send
-strategyProposer1 :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposer1 = pureAction DoNotSend
-
-
--- vote for the head which has received the most votes?
--- that is a strategy as targeted by the protocol
-strategyAttester :: Kleisli Stochastic (Timer, Chain, Chain) Id
-strategyAttester =
+-- Vote for the head which has received the most votes.
+-- If there are multiple heads with the same number of votes, randomize uniformly which head to vote on.
+-- NOTE: This models a strategy of an honest validator targeted by the protocol
+strategyValidator :: Kleisli Stochastic (Timer, Chain, Chain) Id
+strategyValidator =
   Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
                                   lsHead = S.elems headS
                                    in if length lsHead == 1
@@ -52,15 +50,13 @@ strategyAttester =
                                          else do
                                                drawHead <- uniformDist lsHead
                                                pure $ drawHead)
+                                         -- ^ Under normal working conditions of the protocol, that conditional will never kick in
 
 -- Combining strategies for a single stage -- waiting
-strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::- Nil
-strategyOneRound1 = strategyProposer1 ::- strategyAttester ::- strategyAttester  ::- Nil
+strategyOneRound = strategyProposer ::- strategyValidator ::- strategyValidator ::- Nil
 
--- Combining strategies for several stages
+-- Combining strategies for two stages
 strategyTuple = strategyOneRound +:+ strategyOneRound
-strategyTuple1 = strategyOneRound1 +:+ strategyOneRound
-
 
 
 ---------------------
@@ -69,15 +65,11 @@ strategyTuple1 = strategyOneRound1 +:+ strategyOneRound
 -- Initial linear chain with two votes per block
 initialChainLinear = path [(1,2),(2,2),(3,2)]
 
--- Initial forked chain
-initialChainForked = edges [((1,2),(2,2)),((1,2),(4,0)),((2,2),(3,4))]
-
 -- Initial hashMap for last rounds players
 -- assuming they both voted for the same block (3)
 -- NOTE names have to match game definition
 initialMap :: AttesterMap
 initialMap = M.fromList [("a10",3),("a20",3)]
-
 
 
 -- Initial context for linear chain, all initiated at the same ticker time, and an empty hashMap
