@@ -5,7 +5,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 
-module Examples.TimingGames.SingleRoundAttacker where
+module Examples.TimingGames.Attack where
 
 
 import           Algebra.Graph.Relation
