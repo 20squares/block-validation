@@ -5,7 +5,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 
-module Examples.TimingGames.SingleRoundAttacker where
+module Examples.TimingGames.HonestBehavior where
 
 
 import           Algebra.Graph.Relation
@@ -19,16 +19,14 @@ import           Examples.TimingGames.GraphGames.Internal
 import           Examples.TimingGames.GraphGames.TypesFunctions
 
 ---------------------------------------------------------------
--- Here we test the assumption that a misrepresenting proposer,
--- by waiting sufficiently long, can cause a problem for the
--- protocol
+-- Here we test the behavior of honest agents, i.e. following
+-- the main idea of the protocol
 ---------------------------------------------------------------
-
 
 -------------------------
 -- Equilibrium definition
 
-eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateIsEq $ evaluate (oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
+eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateIsEq $ evaluate (oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
 
 
 -----------------------
@@ -46,35 +44,18 @@ strategyProposer = Kleisli (\(_,chain) ->
                                                drawHead <- uniformDist lsHead
                                                pure $ Send drawHead)
 
-
 -- vote for the head which has received the most votes
--- in case of a tie, choose the block from the current proposer
-strategyValidator4 :: Kleisli Stochastic (Timer, Chain, Chain) Id
-strategyValidator4 =
+-- in case of a tie, choose the block from last round
+strategyValidator :: Kleisli Stochastic (Timer, Chain, Chain) Id
+strategyValidator =
   Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
                                   lsHead = S.elems headS
                                    in if length lsHead == 1
                                          then pure $ head lsHead
                                          else do
-                                               pure 4)
-
--- vote for the head which has received the most votes
--- in case of a tie, choose the block from the current proposer
-strategyValidator5 :: Kleisli Stochastic (Timer, Chain, Chain) Id
-strategyValidator5 =
-  Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
-                                  lsHead = S.elems headS
-                                   in if length lsHead == 1
-                                         then pure $ head lsHead
-                                         else do
-                                               pure 5)
-
-
--- Combining strategies for a single stage -- validator voting for 4
-strategyOneRound4 = strategyProposer ::- strategyValidator4 ::- strategyValidator4 ::- Nil
-
--- Combining strategies for a single stage -- validator voting for 4
-strategyOneRound5 = strategyProposer ::- strategyValidator5 ::- strategyValidator5 ::- Nil
+                                               pure $ 4)
+-- Combining strategies for a single stage -- waiting
+strategyOneRound = strategyProposer ::- strategyValidator ::- strategyValidator ::- Nil
 
 ---------------------
 -- Initial conditions
@@ -82,14 +63,13 @@ strategyOneRound5 = strategyProposer ::- strategyValidator5 ::- strategyValidato
 -- Initial linear chain with two votes per block
 initialChainLinear = path [(1,2),(2,2),(3,2)]
 
--- Mainpulated chain which comes in second by the proposer from round before
-manipulatedChain   = path [(1,2),(2,2),(3,2),(5,0)]
 
 -- Initial hashMap for last rounds players
 -- assuming they both voted for the same block (3)
 -- NOTE names have to match game definition
 initialMap :: AttesterMap
 initialMap = M.fromList [("a10",3),("a20",3)]
+
 
 
 -- Initial context for linear chain, all initiated at the same ticker time, and an empty hashMap
@@ -99,11 +79,11 @@ initialContextLinear :: Player
                      -> Reward
                      -> Fee
                      -> StochasticStatefulContext
-                          (Timer, Chain, Id, AttesterMap, Chain)
+                          (Timer, Chain, Id, AttesterMap)
                           ()
                           (Chain, Id, AttesterMap)
                           ()
-initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(0, initialChainLinear, 3, initialMap, manipulatedChain))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
+initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(0, initialChainLinear, 3, initialMap))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
 
 -- We need to embed the future reward for the players of that single round
 feedPayoffs :: Player -> Player -> Player -> Reward -> Fee -> (Chain, Id, AttesterMap) -> StateT Vector Stochastic ()
@@ -125,7 +105,5 @@ feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,attesterHashMapN
 -------------------
 -- Scenarios Tested
 {-
-eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneRound4 (initialContextLinear "p1" "a11" "a21" 2 2)
-
-eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneRound5 (initialContextLinear "p1" "a11" "a21" 2 2)
+eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneRound (initialContextLinear "p1" "a11" "a21" 2 2)
 -}

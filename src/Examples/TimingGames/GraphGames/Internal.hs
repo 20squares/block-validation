@@ -38,7 +38,7 @@ import           Data.Tuple.Extra (uncurry3)
 -- Group all attesters together
 attestersGroupDecision name1 name2 = [opengame|
 
-    inputs    : ticker,chainNew,chainOld, attesterHashMapOld ;
+    inputs    : ticker,chainNew,chainOld, validatorsHashMapOld ;
     feedback  :   ;
 
     :-----:
@@ -57,7 +57,7 @@ attestersGroupDecision name1 name2 = [opengame|
     returns   : ;
     // ^ Attester2 makes a decision
 
-    inputs    : [(name1,attested1),(name2,attested2)], attesterHashMapOld ;
+    inputs    : [(name1,attested1),(name2,attested2)], validatorsHashMapOld ;
     feedback  : ;
     operation : forwardFunction $ uncurry newAttesterMap ;
     outputs   : attesterHashMap ;
@@ -127,7 +127,7 @@ attestersPayment name1 name2 fee = [opengame|
 -- One episode game with proposer who can wait
 oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
 
-    inputs    : ticker, chainOld, headOfChainIdT2, attesterHashMapOld  ;
+    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld  ;
     // ^ chainOld is the old hash
     feedback  :   ;
 
@@ -139,7 +139,7 @@ oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
     returns   : ;
     // ^ Proposer makes a decision, a new hash is proposed
 
-    inputs    : ticker,chainNew,chainOld, attesterHashMapOld;
+    inputs    : ticker,chainNew,chainOld, validatorsHashMapOld;
     feedback  :   ;
     operation : attestersGroupDecision a11 a21 ;
     outputs   : attesterHashMapNew, chainNewUpdated ;
@@ -153,7 +153,7 @@ oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
     returns   : ;
     // ^ Determines the head of the chain
 
-    inputs    : attesterHashMapOld, chainNewUpdated, headOfChainId ;
+    inputs    : validatorsHashMapOld, chainNewUpdated, headOfChainId ;
     feedback  :   ;
     operation : attestersPayment a10 a20 fee ;
     outputs   : ;
@@ -181,29 +181,67 @@ oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
   |]
 
 
--- Repeated game with proposer who can wait
-repeatedGame  p0 p1 a10 a20 a11 a21 reward fee delayTreshold  = [opengame|
+-- One episode game with proposer who can wait; allows for a different chain being observed by proposer
+-- and validators. Useful for analysis of attack
+oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
 
-    inputs    : ticker, chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld, chainManipulated ;
+    // ^ chainOld is the old hash
     feedback  :   ;
 
     :-----:
-
-    inputs    : ticker, chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    : ticker, chainOld ;
     feedback  :   ;
-    operation : oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
-    outputs   : chainNew, headOfChainIdT1, attesterHashMapNew  ;
-    returns   :  ;
-
-    inputs    : ticker;
-    feedback  :   ;
-    operation : forwardFunction transformTicker ;
-    outputs   : tickerNew;
+    operation : proposer p1 delayTreshold ;
+    outputs   : chainNew ;
     returns   : ;
+    // ^ Proposer makes a decision, a new hash is proposed
+
+     inputs    : chainNew, chainManipulated ;
+    feedback  :   ;
+    operation : mergeChain ;
+    outputs   : mergedChain ;
+    returns   : ;
+    // ^ Merges the two chains into a new chain for the validators
+
+    inputs    : ticker,mergedChain,chainOld, validatorsHashMapOld;
+    feedback  :   ;
+    operation : attestersGroupDecision a11 a21 ;
+    outputs   : attesterHashMapNew, chainNewUpdated ;
+    returns   :  ;
+    // ^ Attesters make a decision
+
+    inputs    : chainNewUpdated ;
+    feedback  :   ;
+    operation : determineHeadOfChain ;
+    outputs   : headOfChainId ;
+    returns   : ;
+    // ^ Determines the head of the chain
+
+    inputs    : validatorsHashMapOld, chainNewUpdated, headOfChainId ;
+    feedback  :   ;
+    operation : attestersPayment a10 a20 fee ;
+    outputs   : ;
+    returns   : ;
+    // ^ Determines whether attesters from period (t-1) were correct and get rewarded
+
+    inputs    : chainOld, headOfChainIdT2 ;
+    feedback  :   ;
+    operation : oldProposerAddedBlock ;
+    outputs   : blockAddedInT1, headOfChainIdT1;
+    returns   : ;
+    // ^ This determines whether the proposer from period (t-1) did actually add a block or not
+
+    inputs    : blockAddedInT1, chainNewUpdated ;
+    feedback  :   ;
+    operation : proposerPayment p0 reward ;
+    outputs   :  ;
+    returns   :  ;
+    // ^ This determines whether the proposer from period (t-1) was correct and triggers payments accordingly
 
     :-----:
 
-    outputs   : tickerNew, chainNew, headOfChainIdT1, attesterHashMapNew ;
+    outputs   : chainNewUpdated,  headOfChainIdT1,  attesterHashMapNew  ;
     returns   :  ;
   |]
 
@@ -213,12 +251,12 @@ repeatedGame  p0 p1 a10 a20 a11 a21 reward fee delayTreshold  = [opengame|
 -- Follows spec for two players
 twoEpisodeGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee delayTreshold= [opengame|
 
-    inputs    : ticker, chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld ;
     feedback  :   ;
 
     :-----:
 
-    inputs    : ticker,chainOld, headOfChainIdT2, attesterHashMapOld ;
+    inputs    : ticker,chainOld, headOfChainIdT2, validatorsHashMapOld ;
     feedback  :   ;
     operation : oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
     outputs   : chainNew,  headOfChainIdT1, attesterHashMapNew  ;
@@ -250,5 +288,35 @@ twoEpisodeGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee delayTreshold= [ope
     outputs   : tickerNew2, chainNew2, headOfChainIdT, attesterHashMapNew2 ;
     returns   :  ;
   |]
+
+ 
+
+-- Repeated game with proposer who can wait
+repeatedGame  p0 p1 a10 a20 a11 a21 reward fee delayTreshold  = [opengame|
+
+    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld ;
+    feedback  :   ;
+
+    :-----:
+
+    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld ;
+    feedback  :   ;
+    operation : oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
+    outputs   : chainNew, headOfChainIdT1, attesterHashMapNew  ;
+    returns   :  ;
+
+    inputs    : ticker;
+    feedback  :   ;
+    operation : forwardFunction transformTicker ;
+    outputs   : tickerNew;
+    returns   : ;
+
+    :-----:
+
+    outputs   : tickerNew, chainNew, headOfChainIdT1, attesterHashMapNew ;
+    returns   :  ;
+  |]
+
+
 
 

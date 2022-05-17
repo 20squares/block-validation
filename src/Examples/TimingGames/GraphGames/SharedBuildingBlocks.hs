@@ -239,4 +239,31 @@ proposerPayment name reward = [opengame|
   |]
 
 
+-- Merge two chains -- needed when there is an attack
+mergeChain :: (Ord a, Show a) =>
+                    OpenGame
+                      StochasticStatefulOptic
+                      StochasticStatefulContext
+                        ('[])
+                        ('[])
+                        (Relation a, Relation a)
+                        ()
+                        (Relation a)
+                        ()
+mergeChain = [opengame|
+
+    inputs    : chain1, chain2 ;
+    feedback  :   ;
+
+    :-----:
+    inputs    : chain1, chain2 ;
+    feedback  :   ;
+    operation : forwardFunction $ uncurry $ overlay ;
+    outputs   : mergedChain ;
+    returns   : ;
+    :-----:
+
+    outputs   : mergedChain ;
+    returns   :  ;
+  |]
 
