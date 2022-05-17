@@ -28,7 +28,7 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 -------------------------
 -- Equilibrium definition
 
-eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateIsEq $ evaluate (oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
+eqOneEpisodeGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateIsEq $ evaluate (oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
 
 
 -----------------------
@@ -125,7 +125,7 @@ feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,attesterHashMapN
 -------------------
 -- Scenarios Tested
 {-
-eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneRound4 (initialContextLinear "p1" "a11" "a21" 2 2)
+eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneEpisode4 (initialContextLinear "p1" "a11" "a21" 2 2)
 
-eqOneRoundGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneRound5 (initialContextLinear "p1" "a11" "a21" 2 2)
+eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneEpisode5 (initialContextLinear "p1" "a11" "a21" 2 2)
 -}

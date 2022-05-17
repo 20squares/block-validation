@@ -18,7 +18,7 @@ module ChainEquilibrium
 where 
 
 import           Examples.TimingGames.GraphGames.Internal
-import           Examples.TimingGames.Analysis
+import           Examples.TimingGames.HonestBehavior
 import           Examples.TimingGames.GraphGames.TypesFunctions
 import           Engine.Engine
 
@@ -34,7 +34,6 @@ import Examples.Decision
 
 main = do
   verboseCheck prop_eqForallInitialChains
-  verboseCheck (prop_noEqDeviatingProp initialChainLinear)
 
 
 ------------------------------------------------
@@ -56,11 +55,19 @@ drawId chain =
   let size = vertexCount chain
       in choose (1,size - 1)
 
+
 -- create a list of vertices with increasing id
 listOfVertices :: Arbitrary (Id,Vote) => Id -> Gen [(Id,Vote)]
 listOfVertices id = frequency
   [ (1, return [])
   , (4, (:) <$> drawNode id <*> listOfVertices (id + 1))]
+
+-- create a list of vertices with fixed root and increasing id 
+listOfVerticesWRoot :: Arbitrary (Id,Vote) => Gen [(Id,Vote)]
+listOfVerticesWRoot = do
+  ls <- listOfVertices 2
+  let withRoot = [(1,2)] ++ ls
+  return withRoot 
 
 -- first, generate a simple linear path
 drawChain :: Gen [(Id,Vote)] -> Gen Chain
@@ -71,37 +78,11 @@ drawChain = fmap path
 eqForallInitialChains initialChain = 
   checkEq initialChain  == True
   where
-   checkEq initialChain =  generateEquilibrium $  evaluate (twoEpisodeGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0) strategyTuple context
+   checkEq initialChain =  generateEquilibrium $  evaluate (oneEpisode "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0) strategyOneEpisode context
    context =  StochasticStatefulContext (pure ((),(0,initialChain,3,initialMap))) (\_ _ -> pure ())
    initialMap = M.fromList [("a10",3),("a20",3)]
 
 -- construct testable property
-prop_eqForallInitialChains = forAll (drawChain $ listOfVertices 1) eqForallInitialChains
+prop_eqForallInitialChains = forAll (drawChain $ listOfVerticesWRoot) eqForallInitialChains
 
- 
-------------------------------------------------
--- Explore random strategies different than
--- following the head
-
--- Strategy for proposer
-strategyProposerDeviate :: Id ->  (Kleisli Stochastic (Timer, Chain) (Send Id))
-strategyProposerDeviate id = pureAction $ Send id
-
--- Combining strategies for a single stage
-strategyOneRoundDeviate id = strategyProposerDeviate id ::- strategyValidator ::- strategyValidator ::- Nil
-
--- Combining strategies for several stages
-strategyTupleDeviate id = strategyOneRoundDeviate id +:+ strategyOneRound
-
--- Extract non-equilibrium for proposer
-noEqDeviatingProp initialChain id=
-  checkEq == False
-  where
-   checkEq = generateEquilibrium $  evaluate (twoEpisodeGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0) (strategyTupleDeviate id) context
-   context =  StochasticStatefulContext (pure ((),(0,initialChain,3,initialMap))) (\_ _ -> pure ())
-   initialMap = M.fromList [("a10",3),("a20",3)]
-
-
--- construct testable property for proposer strategy
-prop_noEqDeviatingProp initialChain = forAll (drawId initialChain) (noEqDeviatingProp initialChain)
 

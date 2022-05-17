@@ -43,7 +43,7 @@ library:
     - Examples.Markov.TestSimpleMonteCarlo
     - Examples.Markov.TestSimpleMonteCarlo.Continuation
     - Examples.TimingGames.GraphGames.Internal
-    - Examples.TimingGames.Analysis
+    - Examples.TimingGames.HonestBehavior
     - Examples.TimingGames.GraphGames.TypesFunctions
     - Graphics
 
