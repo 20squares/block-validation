@@ -19,5 +19,4 @@ import           Test.QuickCheck
 
 main = do
   verboseCheck prop_eqForallInitialChains
-  verboseCheck (prop_noEqDeviatingProp initialChainLinear)
 

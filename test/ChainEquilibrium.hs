@@ -13,7 +13,6 @@
 
 module ChainEquilibrium
  ( prop_eqForallInitialChains
- , prop_noEqDeviatingProp
  , initialChainLinear)
 where 
 
