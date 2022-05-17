@@ -28,7 +28,7 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 -------------------------
 -- Equilibrium definition
 
-eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateOutput $ evaluate (oneRound p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
+eqOneRoundGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateOutput $ evaluate (oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
 
 
 -----------------------
@@ -53,8 +53,8 @@ strategyProposer1 = pureAction $ Send 3
 
 -- vote for the head which has received the most votes
 -- in case of a tie, choose the block from last round
-strategyAttester :: Kleisli Stochastic (Timer, Chain, Chain) Id
-strategyAttester =
+strategyValidator :: Kleisli Stochastic (Timer, Chain, Chain) Id
+strategyValidator =
   Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
                                   lsHead = S.elems headS
                                    in if length lsHead == 1
@@ -64,8 +64,8 @@ strategyAttester =
 
 -- vote for the head which has received the most votes?
 -- in case of a tie, randomize
-strategyAttester1 :: Kleisli Stochastic (Timer, Chain, Chain) Id
-strategyAttester1 =
+strategyValidator1 :: Kleisli Stochastic (Timer, Chain, Chain) Id
+strategyValidator1 =
   Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
                                   lsHead = S.elems headS
                                    in if length lsHead == 1
@@ -75,9 +75,9 @@ strategyAttester1 =
                                                pure $ drawHead)
 
 -- Combining strategies for a single stage -- waiting
-strategyOneRound = strategyProposer ::- strategyAttester ::- strategyAttester ::- Nil
-strategyOneRound1 = strategyProposer1 ::- strategyAttester ::- strategyAttester  ::- Nil
-strategyOneRound2 = strategyProposer1 ::- strategyAttester1 ::- strategyAttester1  ::- Nil
+strategyOneRound = strategyProposer ::- strategyValidator ::- strategyValidator ::- Nil
+strategyOneRound1 = strategyProposer1 ::- strategyValidator ::- strategyValidator  ::- Nil
+strategyOneRound2 = strategyProposer1 ::- strategyValidator1 ::- strategyValidator1  ::- Nil
 
 ---------------------
 -- Initial conditions

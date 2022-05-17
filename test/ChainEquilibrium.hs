@@ -88,7 +88,7 @@ strategyProposerDeviate :: Id ->  (Kleisli Stochastic (Timer, Chain) (Send Id))
 strategyProposerDeviate id = pureAction $ Send id
 
 -- Combining strategies for a single stage
-strategyOneRoundDeviate id = strategyProposerDeviate id ::- strategyAttester ::- strategyAttester ::- Nil
+strategyOneRoundDeviate id = strategyProposerDeviate id ::- strategyValidator ::- strategyValidator ::- Nil
 
 -- Combining strategies for several stages
 strategyTupleDeviate id = strategyOneRoundDeviate id +:+ strategyOneRound

@@ -125,7 +125,7 @@ attestersPayment name1 name2 fee = [opengame|
 -------------------
 
 -- One round game with proposer who can wait
-oneRound p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
+oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
 
     inputs    : ticker, chainOld, headOfChainIdT2, attesterHashMapOld  ;
     // ^ chainOld is the old hash
@@ -192,7 +192,7 @@ repeatedGame  p0 p1 a10 a20 a11 a21 reward fee delayTreshold  = [opengame|
 
     inputs    : ticker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
-    operation : oneRound p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
+    operation : oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
     outputs   : chainNew, headOfChainIdT1, attesterHashMapNew  ;
     returns   :  ;
 
@@ -221,7 +221,7 @@ twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee delayTreshold= [openg
 
     inputs    : ticker,chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;
-    operation : oneRound p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
+    operation : oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
     outputs   : chainNew,  headOfChainIdT1, attesterHashMapNew  ;
     returns   :  ;
 
@@ -234,7 +234,7 @@ twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee delayTreshold= [openg
     inputs    : ticker, chainNew, headOfChainIdT1, attesterHashMapNew ;
     // NOTE ticker time is ignored here
     feedback  :   ;
-    operation : oneRound p1 p2 a11 a21 a12 a22 reward fee delayTreshold ;
+    operation : oneEpisode p1 p2 a11 a21 a12 a22 reward fee delayTreshold ;
     outputs   : chainNew2, headOfChainIdT, attesterHashMapNew2 ;
     returns   :  ;
 
