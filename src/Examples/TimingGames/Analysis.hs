@@ -18,7 +18,7 @@ import           Examples.TimingGames.GraphGames.TypesFunctions
 -- Equilibrium definition
 
 -- eq definition
-eqTwoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee delayTreshold strategy context = generateIsEq $ evaluate (twoRoundGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee delayTreshold) strategy context
+eqTwoEpisodeGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee delayTreshold strategy context = generateIsEq $ evaluate (twoEpisodeGame p0 p1 p2 a10 a20 a11 a21 a12 a22 reward fee delayTreshold) strategy context
 
 
 -----------------------

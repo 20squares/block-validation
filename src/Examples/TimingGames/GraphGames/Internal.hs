@@ -124,7 +124,7 @@ attestersPayment name1 name2 fee = [opengame|
 -- 2 Complete games
 -------------------
 
--- One round game with proposer who can wait
+-- One episode game with proposer who can wait
 oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
 
     inputs    : ticker, chainOld, headOfChainIdT2, attesterHashMapOld  ;
@@ -181,7 +181,6 @@ oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
   |]
 
 
-
 -- Repeated game with proposer who can wait
 repeatedGame  p0 p1 a10 a20 a11 a21 reward fee delayTreshold  = [opengame|
 
@@ -210,9 +209,9 @@ repeatedGame  p0 p1 a10 a20 a11 a21 reward fee delayTreshold  = [opengame|
 
 
 
--- Two round game with proposer who can wait
+-- Two episode game with proposer who can wait
 -- Follows spec for two players
-twoRoundGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee delayTreshold= [opengame|
+twoEpisodeGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee delayTreshold= [opengame|
 
     inputs    : ticker, chainOld, headOfChainIdT2, attesterHashMapOld ;
     feedback  :   ;

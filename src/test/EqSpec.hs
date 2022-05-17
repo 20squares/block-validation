@@ -21,4 +21,4 @@ linearChainEq = describe
          (testEq strategyTuple initialContextLinear)
          True
    
-  where testEq strategy context= generateEquilibrium $ evaluate (twoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0) strategy context
+  where testEq strategy context= generateEquilibrium $ evaluate (twoEpisodeGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0) strategy context

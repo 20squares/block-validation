@@ -71,7 +71,7 @@ drawChain = fmap path
 eqForallInitialChains initialChain = 
   checkEq initialChain  == True
   where
-   checkEq initialChain =  generateEquilibrium $  evaluate (twoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0) strategyTuple context
+   checkEq initialChain =  generateEquilibrium $  evaluate (twoEpisodeGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0) strategyTuple context
    context =  StochasticStatefulContext (pure ((),(0,initialChain,3,initialMap))) (\_ _ -> pure ())
    initialMap = M.fromList [("a10",3),("a20",3)]
 
@@ -97,7 +97,7 @@ strategyTupleDeviate id = strategyOneRoundDeviate id +:+ strategyOneRound
 noEqDeviatingProp initialChain id=
   checkEq == False
   where
-   checkEq = generateEquilibrium $  evaluate (twoRoundGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0) (strategyTupleDeviate id) context
+   checkEq = generateEquilibrium $  evaluate (twoEpisodeGame "p0" "p1" "p2" "a10" "a20" "a11" "a21" "a12" "a22" 2 2 0) (strategyTupleDeviate id) context
    context =  StochasticStatefulContext (pure ((),(0,initialChain,3,initialMap))) (\_ _ -> pure ())
    initialMap = M.fromList [("a10",3),("a20",3)]
 
