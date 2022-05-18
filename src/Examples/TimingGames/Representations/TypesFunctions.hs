@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.TimingGames.GraphGames.TypesFunctions where
+module Examples.TimingGames.Representations.TypesFunctions where
 
 import           Engine.Engine
 

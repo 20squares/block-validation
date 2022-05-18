@@ -15,8 +15,8 @@ import qualified Data.Set             as S
 
 import           Data.Utils
 import           Engine.Engine
-import           Examples.TimingGames.GraphGames.Internal
-import           Examples.TimingGames.GraphGames.TypesFunctions
+import           Examples.TimingGames.Representations.Internal
+import           Examples.TimingGames.Representations.TypesFunctions
 
 ---------------------------------------------------------------
 -- Here we test the behavior of honest agents, i.e. following

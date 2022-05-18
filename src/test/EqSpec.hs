@@ -7,7 +7,7 @@ import           Test.Hspec
 
 import           Engine.Engine
 import           Examples.TimingGames.HonestBehavior
-import           Examples.TimingGames.GraphGames.Internal
+import           Examples.TimingGames.Representations.Internal
 
 
 spec :: Spec
