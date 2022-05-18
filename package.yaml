@@ -1,11 +1,11 @@
 name: open-games-hs
 version: '0.1.0.0'
-synopsis: Haskell implementation of open games
+synopsis: Protocol analysis 
 category: Math
-author: Jules Hedges, André Videla, Philipp Zahn & other contributors
-maintainer: philipp.zahn@protonmail
+author: Philipp Zahn
+maintainer: philipp.m.zahn@gmail.com
 copyright: Jules Hedges, André Videla, Philipp Zahn & other contributors
-license: AGPL
+license: MIT
 extra-source-files:
 - README.md
 
