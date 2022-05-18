@@ -5,7 +5,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 
-module Examples.TimingGames.Attack where
+module Examples.BlockValidation.Attack where
 
 
 import           Algebra.Graph.Relation
@@ -15,8 +15,8 @@ import qualified Data.Set             as S
 
 import           Data.Utils
 import           Engine.Engine
-import           Examples.TimingGames.Representations.Internal
-import           Examples.TimingGames.Representations.TypesFunctions
+import           Examples.BlockValidation.Representations.Internal
+import           Examples.BlockValidation.Representations.TypesFunctions
 
 ---------------------------------------------------------------
 -- Here we test the assumption that a misrepresenting proposer,

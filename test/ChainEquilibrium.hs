@@ -16,9 +16,9 @@ module ChainEquilibrium
  , initialChainLinear)
 where 
 
-import           Examples.TimingGames.Representations.Internal
-import           Examples.TimingGames.HonestBehavior
-import           Examples.TimingGames.Representations.TypesFunctions
+import           Examples.BlockValidation.Representations.Internal
+import           Examples.BlockValidation.HonestBehavior
+import           Examples.BlockValidation.Representations.TypesFunctions
 import           Engine.Engine
 
 import           Algebra.Graph.Relation

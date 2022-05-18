@@ -9,7 +9,7 @@ import qualified Data.Map.Strict      as M
 import qualified Data.Set             as S
 import           Test.Hspec
 
-import           Examples.TimingGames.Representations.TypesFunctions
+import           Examples.BlockValidation.Representations.TypesFunctions
 
 
 spec :: Spec

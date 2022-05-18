@@ -8,13 +8,13 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Examples.TimingGames.Representations.Internal where
+module Examples.BlockValidation.Representations.Internal where
 
 
 import           Engine.Engine
 import           Preprocessor.Preprocessor
-import           Examples.TimingGames.Representations.TypesFunctions
-import           Examples.TimingGames.Representations.SharedBuildingBlocks
+import           Examples.BlockValidation.Representations.TypesFunctions
+import           Examples.BlockValidation.Representations.SharedBuildingBlocks
 
 
 import           Algebra.Graph.Relation

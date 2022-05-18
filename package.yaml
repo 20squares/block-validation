@@ -28,9 +28,9 @@ library:
     - Preprocessor.TH
     - Preprocessor.Types
     - Preprocessor.Preprocessor
-    - Examples.TimingGames.Representations.Internal
-    - Examples.TimingGames.HonestBehavior
-    - Examples.TimingGames.Representations.TypesFunctions
+    - Examples.BlockValidation.Representations.Internal
+    - Examples.BlockValidation.HonestBehavior
+    - Examples.BlockValidation.Representations.TypesFunctions
     - Graphics
 
 dependencies:
