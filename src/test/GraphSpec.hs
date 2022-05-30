@@ -116,7 +116,7 @@ proposerAlternatives = describe
     "proposer's alternatives are constructed correctly" $ do
       it "correct alternatives linear chain" $ do
         shouldBe
-          (alternativesProposer (0,testChain))
+          (alternativesProposer testChain)
           [DoNotSend, Send 1, Send 2, Send 3, Send 4]
       it "correct new chain is constructed when send decision" $ do
         shouldBe

@@ -76,8 +76,8 @@ drawChain = fmap path
 eqForallInitialChains initialChain = 
   checkEq initialChain  == True
   where
-   checkEq initialChain =  generateEquilibrium $  evaluate (oneEpisode "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0) strategyOneEpisode context
-   context =  StochasticStatefulContext (pure ((),(0,initialChain,3,initialMap))) (\_ _ -> pure ())
+   checkEq initialChain =  generateEquilibrium $  evaluate (oneEpisode "p0" "p1" "a10" "a20" "a11" "a21" 2 2) strategyOneEpisode context
+   context =  StochasticStatefulContext (pure ((),(initialChain,3,initialMap))) (\_ _ -> pure ())
    initialMap = M.fromList [("a10",3),("a20",3)]
 
 -- construct testable property
