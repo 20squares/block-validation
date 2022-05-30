@@ -36,6 +36,7 @@ eqOneEpisodeGame p0 p1 a10 a20 a11 a21 reward fee strategy context = generateIsE
 
 -- build on the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
+-- in case of a tie - randomize 
 strategyProposer :: Kleisli Stochastic Chain (Send Id)
 strategyProposer = Kleisli (\chain ->
                                   let headS = determineHead chain
@@ -59,7 +60,7 @@ strategyValidator4 =
                                                pure 4)
 
 -- vote for the head which has received the most votes
--- in case of a tie, choose the block from the current proposer
+-- in case of a tie, choose the block from the previous proposer
 strategyValidator5 :: Kleisli Stochastic (Chain, Chain) Id
 strategyValidator5 =
   Kleisli (\(chainNew,_) -> let headS = determineHead chainNew
@@ -69,12 +70,31 @@ strategyValidator5 =
                                          else do
                                                pure 5)
 
+-- vote for the head which has received the most votes
+-- in case of a tie, choose the block from the previous proposer
+strategyValidatorRandom :: Kleisli Stochastic (Chain, Chain) Id
+strategyValidatorRandom =
+  Kleisli (\(chainNew,_) -> let headS = determineHead chainNew
+                                lsHead = S.elems headS
+                                   in if length lsHead == 1
+                                         then pure $ head lsHead
+                                         else do
+                                               drawHead <- uniformDist lsHead
+                                               pure $ drawHead)
+
+
+
 
 -- Combining strategies for a single stage -- validator voting for 4
 strategyOneEpisode4 = strategyProposer ::- strategyValidator4 ::- strategyValidator4 ::- Nil
 
--- Combining strategies for a single stage -- validator voting for 4
+-- Combining strategies for a single stage -- validator voting for 5
 strategyOneEpisode5 = strategyProposer ::- strategyValidator5 ::- strategyValidator5 ::- Nil
+
+-- Combining strategies for a single stage -- validator randomizing in case of a tie
+strategyOneEpisodeRandom = strategyProposer ::- strategyValidatorRandom ::- strategyValidatorRandom ::- Nil
+
+
 
 ---------------------
 -- Initial conditions
@@ -128,4 +148,7 @@ feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,attesterHashMapN
 eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode4 (initialContextLinear "p1" "a11" "a21" 2 2)
 
 eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode5 (initialContextLinear "p1" "a11" "a21" 2 2)
+
+eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisodeRandom (initialContextLinear "p1" "a11" "a21" 2 2)
+
 -}
