@@ -28,7 +28,7 @@ import           Examples.BlockValidation.Representations.TypesFunctions
 -------------------------
 -- Equilibrium definition
 
-eqOneEpisodeGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateIsEq $ evaluate (oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
+eqOneEpisodeGame p0 p1 a10 a20 a11 a21 reward fee strategy context = generateIsEq $ evaluate (oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee) strategy context
 
 
 -----------------------
@@ -36,8 +36,8 @@ eqOneEpisodeGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context
 
 -- build on the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
-strategyProposer :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposer = Kleisli (\(_,chain) ->
+strategyProposer :: Kleisli Stochastic Chain (Send Id)
+strategyProposer = Kleisli (\chain ->
                                   let headS = determineHead chain
                                       lsHead = S.elems headS
                                       in if length lsHead == 1
@@ -49,10 +49,10 @@ strategyProposer = Kleisli (\(_,chain) ->
 
 -- vote for the head which has received the most votes
 -- in case of a tie, choose the block from the current proposer
-strategyValidator4 :: Kleisli Stochastic (Timer, Chain, Chain) Id
+strategyValidator4 :: Kleisli Stochastic (Chain, Chain) Id
 strategyValidator4 =
-  Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
-                                  lsHead = S.elems headS
+  Kleisli (\(chainNew,_) -> let headS = determineHead chainNew
+                                lsHead = S.elems headS
                                    in if length lsHead == 1
                                          then pure $ head lsHead
                                          else do
@@ -60,10 +60,10 @@ strategyValidator4 =
 
 -- vote for the head which has received the most votes
 -- in case of a tie, choose the block from the current proposer
-strategyValidator5 :: Kleisli Stochastic (Timer, Chain, Chain) Id
+strategyValidator5 :: Kleisli Stochastic (Chain, Chain) Id
 strategyValidator5 =
-  Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
-                                  lsHead = S.elems headS
+  Kleisli (\(chainNew,_) -> let headS = determineHead chainNew
+                                lsHead = S.elems headS
                                    in if length lsHead == 1
                                          then pure $ head lsHead
                                          else do
@@ -71,10 +71,10 @@ strategyValidator5 =
 
 
 -- Combining strategies for a single stage -- validator voting for 4
-strategyOneRound4 = strategyProposer ::- strategyValidator4 ::- strategyValidator4 ::- Nil
+strategyOneEpisode4 = strategyProposer ::- strategyValidator4 ::- strategyValidator4 ::- Nil
 
 -- Combining strategies for a single stage -- validator voting for 4
-strategyOneRound5 = strategyProposer ::- strategyValidator5 ::- strategyValidator5 ::- Nil
+strategyOneEpisode5 = strategyProposer ::- strategyValidator5 ::- strategyValidator5 ::- Nil
 
 ---------------------
 -- Initial conditions
@@ -99,11 +99,11 @@ initialContextLinear :: Player
                      -> Reward
                      -> Fee
                      -> StochasticStatefulContext
-                          (Timer, Chain, Id, AttesterMap, Chain)
+                          (Chain, Id, AttesterMap, Chain)
                           ()
                           (Chain, Id, AttesterMap)
                           ()
-initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(0, initialChainLinear, 3, initialMap, manipulatedChain))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
+initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(initialChainLinear, 3, initialMap, manipulatedChain))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
 
 -- We need to embed the future reward for the players of that single round
 feedPayoffs :: Player -> Player -> Player -> Reward -> Fee -> (Chain, Id, AttesterMap) -> StateT Vector Stochastic ()
@@ -125,7 +125,7 @@ feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,attesterHashMapN
 -------------------
 -- Scenarios Tested
 {-
-eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneEpisode4 (initialContextLinear "p1" "a11" "a21" 2 2)
+eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode4 (initialContextLinear "p1" "a11" "a21" 2 2)
 
-eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneEpisode5 (initialContextLinear "p1" "a11" "a21" 2 2)
+eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode5 (initialContextLinear "p1" "a11" "a21" 2 2)
 -}

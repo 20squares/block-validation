@@ -81,8 +81,8 @@ addToChainWaitTimer threshold timer chain decision =
           -- ^ otherwise the same block is kept
 
 -- Produces alternatives for proposer
-alternativesProposer :: (Timer, Chain) -> [Send Id]
-alternativesProposer (_,chain) =
+alternativesProposer :: Chain -> [Send Id]
+alternativesProposer chain =
   let noVertices = vertexCount chain
       in DoNotSend : fmap Send [1..noVertices]
 

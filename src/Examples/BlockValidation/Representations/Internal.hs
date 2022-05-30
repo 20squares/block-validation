@@ -25,8 +25,6 @@ import           Data.Tuple.Extra (uncurry3)
 -- State for each game is a model of a chain
 -- Proposer has the possibility to not add to the chain
 
--- TODO For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?
-
 
 ----------
 -- A Model
@@ -38,19 +36,19 @@ import           Data.Tuple.Extra (uncurry3)
 -- Group all attesters together
 attestersGroupDecision name1 name2 = [opengame|
 
-    inputs    : ticker,chainNew,chainOld, validatorsHashMapOld ;
+    inputs    : chainNew,chainOld, validatorsHashMapOld ;
     feedback  :   ;
 
     :-----:
 
-    inputs    : ticker, chainNew, chainOld ;
+    inputs    : chainNew, chainOld ;
     feedback  :   ;
     operation : attester name1  ;
     outputs   : attested1 ;
     returns   : ;
     // ^ Attester1 makes a decision
 
-    inputs    : ticker, chainNew, chainOld ;
+    inputs    : chainNew, chainOld ;
     feedback  :   ;
     operation : attester name2  ;
     outputs   : attested2 ;
@@ -77,6 +75,7 @@ attestersGroupDecision name1 name2 = [opengame|
     outputs   : attesterHashMap, chainNewUpdated;
     returns   :  ;
   |]
+
 
 -- Group payments by attesters
 attestersPayment name1 name2 fee = [opengame|
@@ -125,21 +124,21 @@ attestersPayment name1 name2 fee = [opengame|
 -------------------
 
 -- One episode game with proposer who can wait
-oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
+oneEpisode p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
-    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld  ;
+    inputs    : chainOld, headOfChainIdT2, validatorsHashMapOld  ;
     // ^ chainOld is the old hash
     feedback  :   ;
 
     :-----:
-    inputs    : ticker, chainOld ;
+    inputs    : chainOld ;
     feedback  :   ;
-    operation : proposer p1 delayTreshold ;
+    operation : proposer p1 ;
     outputs   : chainNew ;
     returns   : ;
     // ^ Proposer makes a decision, a new hash is proposed
 
-    inputs    : ticker,chainNew,chainOld, validatorsHashMapOld;
+    inputs    : chainNew,chainOld, validatorsHashMapOld;
     feedback  :   ;
     operation : attestersGroupDecision a11 a21 ;
     outputs   : attesterHashMapNew, chainNewUpdated ;
@@ -183,16 +182,16 @@ oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
 
 -- One episode game with proposer who can wait; allows for a different chain being observed by proposer
 -- and validators. Useful for analysis of attack
-oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
+oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
-    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld, chainManipulated ;
+    inputs    : chainOld, headOfChainIdT2, validatorsHashMapOld, chainManipulated ;
     // ^ chainOld is the old hash
     feedback  :   ;
 
     :-----:
-    inputs    : ticker, chainOld ;
+    inputs    : chainOld ;
     feedback  :   ;
-    operation : proposer p1 delayTreshold ;
+    operation : proposer p1 ;
     outputs   : chainNew ;
     returns   : ;
     // ^ Proposer makes a decision, a new hash is proposed
@@ -204,7 +203,7 @@ oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
     returns   : ;
     // ^ Merges the two chains into a new chain for the validators
 
-    inputs    : ticker,mergedChain,chainOld, validatorsHashMapOld;
+    inputs    : mergedChain,chainOld, validatorsHashMapOld;
     feedback  :   ;
     operation : attestersGroupDecision a11 a21 ;
     outputs   : attesterHashMapNew, chainNewUpdated ;
@@ -244,79 +243,6 @@ oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee delayTreshold = [opengame|
     outputs   : chainNewUpdated,  headOfChainIdT1,  attesterHashMapNew  ;
     returns   :  ;
   |]
-
-
-
--- Two episode game with proposer who can wait
--- Follows spec for two players
-twoEpisodeGame  p0 p1 p2 a10 a20 a11 a21 a12 a22  reward fee delayTreshold= [opengame|
-
-    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld ;
-    feedback  :   ;
-
-    :-----:
-
-    inputs    : ticker,chainOld, headOfChainIdT2, validatorsHashMapOld ;
-    feedback  :   ;
-    operation : oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
-    outputs   : chainNew,  headOfChainIdT1, attesterHashMapNew  ;
-    returns   :  ;
-
-    inputs    : ticker;
-    feedback  :   ;
-    operation : forwardFunction transformTicker ;
-    outputs   : tickerNew;
-    returns   : ;
-
-    inputs    : ticker, chainNew, headOfChainIdT1, attesterHashMapNew ;
-    // NOTE ticker time is ignored here
-    feedback  :   ;
-    operation : oneEpisode p1 p2 a11 a21 a12 a22 reward fee delayTreshold ;
-    outputs   : chainNew2, headOfChainIdT, attesterHashMapNew2 ;
-    returns   :  ;
-
-    inputs    : tickerNew;
-    feedback  :   ;
-    operation : forwardFunction transformTicker ;
-    outputs   : tickerNew2;
-    returns   : ;
-
-
-
-    :-----:
-
-    outputs   : tickerNew2, chainNew2, headOfChainIdT, attesterHashMapNew2 ;
-    returns   :  ;
-  |]
-
- 
-
--- Repeated game with proposer who can wait
-repeatedGame  p0 p1 a10 a20 a11 a21 reward fee delayTreshold  = [opengame|
-
-    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld ;
-    feedback  :   ;
-
-    :-----:
-
-    inputs    : ticker, chainOld, headOfChainIdT2, validatorsHashMapOld ;
-    feedback  :   ;
-    operation : oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold ;
-    outputs   : chainNew, headOfChainIdT1, attesterHashMapNew  ;
-    returns   :  ;
-
-    inputs    : ticker;
-    feedback  :   ;
-    operation : forwardFunction transformTicker ;
-    outputs   : tickerNew;
-    returns   : ;
-
-    :-----:
-
-    outputs   : tickerNew, chainNew, headOfChainIdT1, attesterHashMapNew ;
-    returns   :  ;
-  |]
-
 
 
 

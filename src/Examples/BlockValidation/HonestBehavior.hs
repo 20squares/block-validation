@@ -26,7 +26,7 @@ import           Examples.BlockValidation.Representations.TypesFunctions
 -------------------------
 -- Equilibrium definition
 
-eqOneEpisodeGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context = generateIsEq $ evaluate (oneEpisode p0 p1 a10 a20 a11 a21 reward fee delayTreshold) strategy context
+eqOneEpisodeGame p0 p1 a10 a20 a11 a21 reward fee strategy context = generateIsEq $ evaluate (oneEpisode p0 p1 a10 a20 a11 a21 reward fee) strategy context
 
 
 -----------------------
@@ -34,8 +34,8 @@ eqOneEpisodeGame p0 p1 a10 a20 a11 a21 reward fee delayTreshold strategy context
 
 -- build on the head which has received the most votes?
 -- that is a strategy as targeted by the protocol
-strategyProposer :: Kleisli Stochastic (Timer, Chain) (Send Id)
-strategyProposer = Kleisli (\(_,chain) ->
+strategyProposer :: Kleisli Stochastic Chain (Send Id)
+strategyProposer = Kleisli (\chain ->
                                   let headS = determineHead chain
                                       lsHead = S.elems headS
                                       in if length lsHead == 1
@@ -46,10 +46,10 @@ strategyProposer = Kleisli (\(_,chain) ->
 
 -- vote for the head which has received the most votes
 -- in case of a tie, choose the block from last round
-strategyValidator :: Kleisli Stochastic (Timer, Chain, Chain) Id
+strategyValidator :: Kleisli Stochastic (Chain, Chain) Id
 strategyValidator =
-  Kleisli (\(_,chainNew,_) -> let headS = determineHead chainNew
-                                  lsHead = S.elems headS
+  Kleisli (\(chainNew,_) -> let headS = determineHead chainNew
+                                lsHead = S.elems headS
                                    in if length lsHead == 1
                                          then pure $ head lsHead
                                          else do
@@ -79,11 +79,11 @@ initialContextLinear :: Player
                      -> Reward
                      -> Fee
                      -> StochasticStatefulContext
-                          (Timer, Chain, Id, AttesterMap)
+                          (Chain, Id, AttesterMap)
                           ()
                           (Chain, Id, AttesterMap)
                           ()
-initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(0, initialChainLinear, 3, initialMap))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
+initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(initialChainLinear, 3, initialMap))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
 
 -- We need to embed the future reward for the players of that single round
 feedPayoffs :: Player -> Player -> Player -> Reward -> Fee -> (Chain, Id, AttesterMap) -> StateT Vector Stochastic ()
@@ -105,5 +105,5 @@ feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,attesterHashMapN
 -------------------
 -- Scenarios Tested
 {-
-eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 0 strategyOneEpisode (initialContextLinear "p1" "a11" "a21" 2 2)
+eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode (initialContextLinear "p1" "a11" "a21" 2 2)
 -}

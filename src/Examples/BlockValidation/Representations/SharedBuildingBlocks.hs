@@ -59,13 +59,13 @@ addBlock = [opengame|
 -- The attester observes the sent hash, the old hash, the timer, and can then decide which node to attest as the head
 attester name = [opengame|
 
-    inputs    : ticker,chainNew,chainOld ;
+    inputs    : chainNew,chainOld ;
     feedback  :  ;
 
     :-----:
-    inputs    : ticker,chainNew,chainOld ;
+    inputs    : chainNew,chainOld ;
     feedback  :   ;
-    operation : dependentDecision name (\(ticker, chainNew, chainOld) -> [1, vertexCount chainNew]) ;
+    operation : dependentDecision name (\(chainNew, chainOld) -> [1, vertexCount chainNew]) ;
     outputs   : attestedIndex ;
     returns   : 0 ;
     // ^ the attester picks a vertex to vote on -- as the head of the chain
@@ -82,13 +82,13 @@ attester name = [opengame|
 -- A proposer observes the ticker and decides to append the block to a node OR not
 -- In other words, the proposer can wait to append the block
 -- The _delayedTicker_ is an additional parameter fed into the game, 
-proposer  name delayThreshold = [opengame|
+proposer  name = [opengame|
 
-    inputs    : ticker, chainOld;
+    inputs    : chainOld;
     feedback  :   ;
 
     :-----:
-    inputs    : ticker, chainOld ;
+    inputs    : chainOld ;
     feedback  :   ;
     operation : dependentDecision name  alternativesProposer;
     outputs   : decisionProposer ;
@@ -103,16 +103,9 @@ proposer  name delayThreshold = [opengame|
     returns   : ;
     // ^ creates new hash at t=0
 
-    inputs    : ticker, chainOld, chainNew ;
-    feedback  :   ;
-    operation : forwardFunction $ delayMessage delayThreshold ;
-    outputs   : messageChain ;
-    returns   : ;
-    // ^ for a given timer, determines whether the block is decisionProposer or not
-
     :-----:
 
-    outputs   : messageChain ;
+    outputs   : chainNew ;
     // ^ newchain (if timer allows otherwise old chain), update on delayedticker, decisionProposer
     returns   :  ;
   |]
