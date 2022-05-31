@@ -108,21 +108,21 @@ proposer   = [parseTree|
     returns   :  ;
   |]
 
--- The attester observes the sent hash, the old hash, the timer, and can then decide whether to send the latest hash or not
-attester  = [parseTree|
+-- The validator observes the sent hash, the old hash, the timer, and can then decide whether to send the latest hash or not
+validator  = [parseTree|
 
     inputs    : ticker,hashNew,hashOld ;
     feedback  :  ;
 
     :-----:
-    label     : attesterDecision ;
+    label     : validatorDecision ;
     inputs    : ticker,hashNew,hashOld ;
     feedback  :   ;
-    operation : dependentDecision "attester" (\(ticker, hashNew, hashOld) -> [hashNew,hashOld]) ;
+    operation : dependentDecision "validator" (\(ticker, hashNew, hashOld) -> [hashNew,hashOld]) ;
     outputs   : attested ;
     returns   : 0 ;
-    // ^ the attester either can send the newHash or the oldHash
-    // ^ NOTE the payoff for the attester comes from the next period
+    // ^ the validator either can send the newHash or the oldHash
+    // ^ NOTE the payoff for the validator comes from the next period
     // ^ This needs to be carefully modelled
     :-----:
 
@@ -130,26 +130,26 @@ attester  = [parseTree|
     returns   :  ;
   |]
 
--- attesterPayoff fee correctAttestedNew ;
+-- validatorPayoff fee correctAttestedNew ;
 -- proposerPayoff reward correctSent ;
 
-updatePayoffAttester   = [parseTree|
+updatePayoffValidator   = [parseTree|
     inputs    : bool ;
     feedback  :   ;
 
     :-----:
-    label     : attesterReward ;
+    label     : validatorReward ;
     inputs    : bool ;
     feedback  :   ;
-    operation : forwardFunction $ attesterPayoff fee ;
+    operation : forwardFunction $ validatorPayoff fee ;
     outputs   : value ;
     returns   : ;
     // ^ Determines the value
 
-    label     : addPayoffsAttester ;
+    label     : addPayoffsValidator ;
     inputs    : value ;
     feedback  :   ;
-    operation : addPayoffs "attester" ;
+    operation : addPayoffs "validator" ;
     outputs   : ;
     returns   : ;
     // ^ Could make sense to make sense to model this in period
@@ -197,7 +197,7 @@ updatePayoffProposer    = [parseTree|
 
 oneRound  = [parseTree|
 
-    inputs    : ticker, delayedTicker, hashOld, attesterHash ;
+    inputs    : ticker, delayedTicker, hashOld, validatorHash ;
     feedback  :   ;
 
     :-----:
@@ -208,31 +208,31 @@ oneRound  = [parseTree|
     outputs   : hashNew, delayedTickerUpdate ;
     returns   : ;
 
-    label     : attesterFee ;
+    label     : validatorFee ;
     inputs    : ticker, hashNew, hashOld ;
     feedback  :   ;
-    operation : attester fee ;
+    operation : validator fee ;
     outputs   : attested ;
     returns   : ;
 
     label     : correctedAttested ;
-    inputs    : attesterHash, hashNew ;
+    inputs    : validatorHash, hashNew ;
     feedback  :   ;
     operation : forwardFunction $ uncurry attestedCorrect ;
     outputs   : correctAttested ;
     returns   : ;
-    // ^ This determines the payoff for the attester before
+    // ^ This determines the payoff for the validator before
 
-    label     : updatePayoffAttester ;
+    label     : updatePayoffValidator ;
     inputs    : correctAttested ;
     feedback  :   ;
-    operation : updatePayoffAttester fee ;
+    operation : updatePayoffValidator fee ;
     outputs   : ;
     returns   : ;
-    // ^ Updates the payoff of the attester from the period before
+    // ^ Updates the payoff of the validator from the period before
 
     label     : correctSent ;
-    inputs    : attesterHash, hashNew ;
+    inputs    : validatorHash, hashNew ;
     feedback  :   ;
     operation : forwardFunction $ uncurry attestedCorrect ;
     outputs   : correctSent ;
@@ -258,12 +258,12 @@ oneRound  = [parseTree|
 -- Repeated game
 repeatedGame  = [parseTree|
 
-    inputs    : ticker,delayedTicker, blockHash, attesterHash ;
+    inputs    : ticker,delayedTicker, blockHash, validatorHash ;
     feedback  :   ;
 
     :-----:
     label     : oneRoundGame ;
-    inputs    : ticker,delayedTicker, blockHash, attesterHash ;
+    inputs    : ticker,delayedTicker, blockHash, validatorHash ;
     feedback  : correctAttestedOld  ;
     operation : oneRound reward fee ;
     outputs   : attested, hashNew, delayedTickerUpdate ;
@@ -291,8 +291,8 @@ outputP = [reldir|output|]
 
 hashGeneratorP = [relfile|hashGenerator|]
 proposerP      = [relfile|proposer|]
-attesterP      = [relfile|attester|]
-updatePayoffAttesterP = [relfile|updatePayoffAttester|]
+validatorP      = [relfile|validator|]
+updatePayoffValidatorP = [relfile|updatePayoffValidator|]
 updatePayoffProposerP = [relfile|updatePayoffProposer|]
 oneRoundP             = [relfile|oneRound|]
 repeatedGameP         = [relfile|repeatedGame|]
@@ -302,8 +302,8 @@ main :: IO ()
 main = do
   writeDotFile (toFilePath $ outputP </> hashGeneratorP) (graphToDot customParams (convertBlock hashGenerator))
   writeDotFile (toFilePath $ outputP </> proposerP) (graphToDot customParams (convertBlock proposer))
-  writeDotFile (toFilePath $ outputP </> attesterP) (graphToDot customParams (convertBlock attester))
-  writeDotFile (toFilePath $ outputP </> updatePayoffAttesterP) (graphToDot customParams (convertBlock updatePayoffAttester))
+  writeDotFile (toFilePath $ outputP </> validatorP) (graphToDot customParams (convertBlock validator))
+  writeDotFile (toFilePath $ outputP </> updatePayoffValidatorP) (graphToDot customParams (convertBlock updatePayoffValidator))
   writeDotFile (toFilePath $ outputP </> updatePayoffProposerP) (graphToDot customParams (convertBlock updatePayoffProposer))
   writeDotFile (toFilePath $ outputP </> oneRoundP) (graphToDot customParams (convertBlock oneRound))
   writeDotFile (toFilePath $ outputP </> repeatedGameP) (graphToDot customParams (convertBlock repeatedGame))
@@ -317,11 +317,11 @@ main = do
           )
   runProcess_
       (shell
-          ("dot -Tsvg " ++ (toFilePath $  outputP </> attesterP) ++ " > " ++ (toFilePath $  outputP </> attesterP) ++ ".svg")
+          ("dot -Tsvg " ++ (toFilePath $  outputP </> validatorP) ++ " > " ++ (toFilePath $  outputP </> validatorP) ++ ".svg")
           )
   runProcess_
       (shell
-          ("dot -Tsvg " ++ (toFilePath $  outputP </> updatePayoffAttesterP) ++ " > " ++ (toFilePath $  outputP </> updatePayoffAttesterP) ++ ".svg")
+          ("dot -Tsvg " ++ (toFilePath $  outputP </> updatePayoffValidatorP) ++ " > " ++ (toFilePath $  outputP </> updatePayoffValidatorP) ++ ".svg")
           )
   runProcess_
       (shell

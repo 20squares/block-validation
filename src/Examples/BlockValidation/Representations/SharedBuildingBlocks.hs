@@ -24,7 +24,7 @@ import           Algebra.Graph.Relation
 -- State for each game is a model of a chain
 
 -- TODO Put proposers' decisions also in a map; to have access to earlier player ids
--- TODO For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?
+-- TODO For how long will the renumeration of validators and proposer continue? Is it just for one period? Periods t?
 -- TODO All the components should be here
 
 
@@ -33,9 +33,8 @@ import           Algebra.Graph.Relation
 ----------
 
 
--- Given the decision by the proposer to either wait or to send a head
--- the "new" chain is created -- which means either the same as before
--- or the actually appended version
+-- Given the decision by the proposer to either wait or to send a head, creates a new chain.
+-- Which means either the old chain is copied as before or the chain is actually appended by a new block.
 addBlock = [opengame|
 
     inputs    : chainOld, chosenIdOrWait ;
@@ -56,8 +55,8 @@ addBlock = [opengame|
 
 
 
--- The attester observes the sent hash, the old hash, the timer, and can then decide which node to attest as the head
-attester name = [opengame|
+-- The validator observes the sent hash, the old hash, the timer, and can then decide which node to attest as the head
+validator name = [opengame|
 
     inputs    : chainNew,chainOld ;
     feedback  :  ;
@@ -68,8 +67,8 @@ attester name = [opengame|
     operation : dependentDecision name (\(chainNew, chainOld) -> [1, vertexCount chainNew]) ;
     outputs   : attestedIndex ;
     returns   : 0 ;
-    // ^ the attester picks a vertex to vote on -- as the head of the chain
-    // ^ NOTE the payoff for the attester comes from the next period
+    // ^ the validator picks a vertex to vote on -- as the head of the chain
+    // ^ NOTE the payoff for the validator comes from the next period
 
     :-----:
 
@@ -79,9 +78,8 @@ attester name = [opengame|
 
 
 
--- A proposer observes the ticker and decides to append the block to a node OR not
--- In other words, the proposer can wait to append the block
--- The _delayedTicker_ is an additional parameter fed into the game, 
+-- Given the old chain from (t-1), decides to append the block to a node or not to append.
+-- Conditional on that decision, a new chain is created.
 proposer  name = [opengame|
 
     inputs    : chainOld;
@@ -93,7 +91,6 @@ proposer  name = [opengame|
     operation : dependentDecision name  alternativesProposer;
     outputs   : decisionProposer ;
     returns   : 0;
-    // ^ decision which hash to send forward (latest element, or second latest element etc.)
     // ^ NOTE fix reward to zero; it is later updated where it is evaluated as correct or false
 
     inputs    : chainOld, decisionProposer ;
@@ -101,25 +98,23 @@ proposer  name = [opengame|
     operation : addBlock ;
     outputs   : chainNew;
     returns   : ;
-    // ^ creates new hash at t=0
 
     :-----:
 
     outputs   : chainNew ;
-    // ^ newchain (if timer allows otherwise old chain), update on delayedticker, decisionProposer
     returns   :  ;
   |]
 
 
--- Update the payoff of the attester conditional on the correctness of his action
-updatePayoffAttester name fee  = [opengame|
+-- Update the payoff of the validator conditional on the correctness of his action
+updatePayoffValidator name fee  = [opengame|
     inputs    : bool ;
     feedback  :   ;
 
     :-----:
     inputs    : bool ;
     feedback  :   ;
-    operation : forwardFunction $ attesterPayoff fee ;
+    operation : forwardFunction $ validatorPayoff fee ;
     outputs   : value ;
     returns   : ;
     // ^ Determines the value
@@ -165,7 +160,7 @@ updatePayoffProposer name reward  = [opengame|
 
   |]
 
--- Determines the head of the chain
+-- Given a chain, produces the head of the current chain
 determineHeadOfChain = [opengame|
     inputs    : chain ;
     feedback  :   ;
@@ -183,8 +178,8 @@ determineHeadOfChain = [opengame|
 
   |]
 
--- Determines whether the proposer actually did send a new block in (t-1).
--- It also outputs the head of the chain for period (t-1) -- as this is needed in the next period
+-- Given the old chain from (t-1) and the head of the chain from (t-2), determines whether the proposer
+-- actually did send a new block in (t-1). It also outputs the head of the chain for period (t-1) -- as this is needed in the next period. 
 oldProposerAddedBlock = [opengame|
 
     inputs    : chainOld, headOfChainIdT2 ;

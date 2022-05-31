@@ -33,8 +33,8 @@ type Vote = Int
 type Id    = Int
 type Timer = Int
 type Weight = Int
-type AttesterMap = M.Map Player Id
--- The chain is represented by the edges (Blocks) and vertices (Which attester voted for that Block to be the head)
+type ValidatorMap = M.Map Player Id
+-- The chain is represented by the edges (Blocks) and vertices (Which validator voted for that Block to be the head)
 type Chain = Relation (Id,Vote)
 type WeightedChain = Relation (Id,Weight)
 type Fee = Double
@@ -94,10 +94,10 @@ findVertexById chain id =
        -- ^ list of vertices
        in (head $ filter (\(id',_) -> id' == id) verticeLs)
 
--- For attester choose the string which he believes is the head and update the chain accordingly
+-- For validator choose the string which he believes is the head and update the chain accordingly
 -- FIXME What if non-existing id?
-attesterChoiceIndex :: Chain -> Id -> Chain
-attesterChoiceIndex chain id =
+validatorChoiceIndex :: Chain -> Id -> Chain
+validatorChoiceIndex chain id =
   let (id',i) = findVertexById chain id
       in replaceVertex (id',i) (id',i+1) chain
 
@@ -105,7 +105,7 @@ attesterChoiceIndex chain id =
 -- FIXME What if non-existing id?
 updateVotes :: Chain -> [Id] -> Chain
 updateVotes chain [] = chain
-updateVotes chain (i:is) = updateVotes (attesterChoiceIndex chain i) is
+updateVotes chain (i:is) = updateVotes (validatorChoiceIndex chain i) is
 
 -- Cycling ticker
 transformTicker :: Timer -> Timer
@@ -140,19 +140,19 @@ determineHead chain =
           -- ^ NOTE the value of the last node itself is added as well
 
 
--- Is the node the attester voted for on the path to the latest head?
+-- Is the node the validator voted for on the path to the latest head?
 -- FIXME player name, id not given
--- NOTE: This allows attesters to cast their votes on previous parts of
+-- NOTE: This allows validators to cast their votes on previous parts of
 -- the chain which are already "deep in the stack"
 -- This could be restricted to a certain level of depth
 attestedCorrect :: Player -> M.Map Player Id -> Chain -> S.Set Id -> Bool
-attestedCorrect name attesterMap chain headOfChainS =
+attestedCorrect name validatorMap chain headOfChainS =
   let headOfChainLs = S.elems headOfChainS
-      in and $ fmap (attestedCorrectSingleNode name attesterMap chain) headOfChainLs
+      in and $ fmap (attestedCorrectSingleNode name validatorMap chain) headOfChainLs
   where
     attestedCorrectSingleNode :: Player -> M.Map Player Id -> Chain -> Id -> Bool
-    attestedCorrectSingleNode name attesterMap chain headOfChain =
-      let idChosen = attesterMap M.! name
+    attestedCorrectSingleNode name validatorMap chain headOfChain =
+      let idChosen = validatorMap M.! name
           -- ^ id voted for by player
           chosenNode = findVertexById chain idChosen
           -- ^ vertex chosen
@@ -206,14 +206,14 @@ delayMessage delayTreshold (actualTimer, oldChain, newChain)
   | otherwise                  = newChain
 
 -- transform list to Map; done here due to restrictions of DSL
-newAttesterMap :: [(Player,Id)] -> AttesterMap -> AttesterMap
-newAttesterMap new old = M.union (M.fromList new) old
+newValidatorMap :: [(Player,Id)] -> ValidatorMap -> ValidatorMap
+newValidatorMap new old = M.union (M.fromList new) old
 
 ------------
 -- 2 Payoffs
 ------------
 
-  -- The attester  and the proposer are rewarded if their decision has been evaluated by _attestedCorrect_ resp. _proposedCorrect_ as correct
-attesterPayoff successFee verified = if verified then successFee else 0
+  -- The validator  and the proposer are rewarded if their decision has been evaluated by _attestedCorrect_ resp. _proposedCorrect_ as correct
+validatorPayoff successFee verified = if verified then successFee else 0
 proposerPayoff reward verified  = if verified then reward else 0
 

@@ -33,8 +33,8 @@ import           Data.Tuple.Extra (uncurry3)
 ----------------------
 -- 1 Group Game blocks
 
--- Group all attesters together
-attestersGroupDecision name1 name2 = [opengame|
+-- Group all validators together
+validatorsGroupDecision name1 name2 = [opengame|
 
     inputs    : chainNew,chainOld, validatorsHashMapOld ;
     feedback  :   ;
@@ -43,24 +43,24 @@ attestersGroupDecision name1 name2 = [opengame|
 
     inputs    : chainNew, chainOld ;
     feedback  :   ;
-    operation : attester name1  ;
+    operation : validator name1  ;
     outputs   : attested1 ;
     returns   : ;
-    // ^ Attester1 makes a decision
+    // ^ Validator1 makes a decision
 
     inputs    : chainNew, chainOld ;
     feedback  :   ;
-    operation : attester name2  ;
+    operation : validator name2  ;
     outputs   : attested2 ;
     returns   : ;
-    // ^ Attester2 makes a decision
+    // ^ Validator2 makes a decision
 
     inputs    : [(name1,attested1),(name2,attested2)], validatorsHashMapOld ;
     feedback  : ;
-    operation : forwardFunction $ uncurry newAttesterMap ;
-    outputs   : attesterHashMap ;
+    operation : forwardFunction $ uncurry newValidatorMap ;
+    outputs   : validatorHashMap ;
     returns   : ;
-    // ^ Creates a map of which attester voted for which index
+    // ^ Creates a map of which validator voted for which index
 
     inputs    : chainNew, [attested1,attested2] ;
     feedback  : ;
@@ -72,46 +72,46 @@ attestersGroupDecision name1 name2 = [opengame|
 
     :-----:
 
-    outputs   : attesterHashMap, chainNewUpdated;
+    outputs   : validatorHashMap, chainNewUpdated;
     returns   :  ;
   |]
 
 
--- Group payments by attesters
-attestersPayment name1 name2 fee = [opengame|
+-- Group payments by validators
+validatorsPayment name1 name2 fee = [opengame|
 
-    inputs    : attesterHashMap, chainNew, headId;
+    inputs    : validatorHashMap, chainNew, headId;
     feedback  :   ;
 
     :-----:
-    inputs    : attesterHashMap, chainNew, headId ;
+    inputs    : validatorHashMap, chainNew, headId ;
     feedback  :   ;
     operation : forwardFunction $ uncurry3 $ attestedCorrect name1 ;
     outputs   : correctAttested1 ;
     returns   : ;
-    // ^ This determines whether attester 1 was correct in period (t-1) using the latest hash and the old information
+    // ^ This determines whether validator 1 was correct in period (t-1) using the latest hash and the old information
 
-    inputs    : attesterHashMap, chainNew, headId ;
+    inputs    : validatorHashMap, chainNew, headId ;
     feedback  :   ;
     operation : forwardFunction $ uncurry3 $ attestedCorrect name2 ;
     outputs   : correctAttested2 ;
     returns   : ;
-    // ^ This determines whether attester 2 was correct in period (t-1)
+    // ^ This determines whether validator 2 was correct in period (t-1)
 
 
     inputs    : correctAttested1 ;
     feedback  :   ;
-    operation : updatePayoffAttester name1 fee ;
+    operation : updatePayoffValidator name1 fee ;
     outputs   : ;
     returns   : ;
-    // ^ Updates the payoff of attester 1 given decision in period (t-1)
+    // ^ Updates the payoff of validator 1 given decision in period (t-1)
 
     inputs    : correctAttested2 ;
     feedback  :   ;
-    operation : updatePayoffAttester name2 fee ;
+    operation : updatePayoffValidator name2 fee ;
     outputs   : ;
     returns   : ;
-    // ^ Updates the payoff of attester 2 given decision in period (t-1)
+    // ^ Updates the payoff of validator 2 given decision in period (t-1)
 
         :-----:
 
@@ -140,10 +140,10 @@ oneEpisode p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     inputs    : chainNew,chainOld, validatorsHashMapOld;
     feedback  :   ;
-    operation : attestersGroupDecision a11 a21 ;
-    outputs   : attesterHashMapNew, chainNewUpdated ;
+    operation : validatorsGroupDecision a11 a21 ;
+    outputs   : validatorHashMapNew, chainNewUpdated ;
     returns   :  ;
-    // ^ Attesters make a decision
+    // ^ Validators make a decision
 
     inputs    : chainNewUpdated ;
     feedback  :   ;
@@ -154,10 +154,10 @@ oneEpisode p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     inputs    : validatorsHashMapOld, chainNewUpdated, headOfChainId ;
     feedback  :   ;
-    operation : attestersPayment a10 a20 fee ;
+    operation : validatorsPayment a10 a20 fee ;
     outputs   : ;
     returns   : ;
-    // ^ Determines whether attesters from period (t-1) were correct and get rewarded
+    // ^ Determines whether validators from period (t-1) were correct and get rewarded
 
     inputs    : chainOld, headOfChainIdT2 ;
     feedback  :   ;
@@ -175,7 +175,7 @@ oneEpisode p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     :-----:
 
-    outputs   : chainNewUpdated,  headOfChainIdT1,  attesterHashMapNew  ;
+    outputs   : chainNewUpdated,  headOfChainIdT1,  validatorHashMapNew  ;
     returns   :  ;
   |]
 
@@ -205,10 +205,10 @@ oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     inputs    : mergedChain,chainOld, validatorsHashMapOld;
     feedback  :   ;
-    operation : attestersGroupDecision a11 a21 ;
-    outputs   : attesterHashMapNew, chainNewUpdated ;
+    operation : validatorsGroupDecision a11 a21 ;
+    outputs   : validatorHashMapNew, chainNewUpdated ;
     returns   :  ;
-    // ^ Attesters make a decision
+    // ^ Validators make a decision
 
     inputs    : chainNewUpdated ;
     feedback  :   ;
@@ -219,10 +219,10 @@ oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     inputs    : validatorsHashMapOld, chainNewUpdated, headOfChainId ;
     feedback  :   ;
-    operation : attestersPayment a10 a20 fee ;
+    operation : validatorsPayment a10 a20 fee ;
     outputs   : ;
     returns   : ;
-    // ^ Determines whether attesters from period (t-1) were correct and get rewarded
+    // ^ Determines whether validators from period (t-1) were correct and get rewarded
 
     inputs    : chainOld, headOfChainIdT2 ;
     feedback  :   ;
@@ -240,7 +240,7 @@ oneEpisodeAttack p0 p1 a10 a20 a11 a21 reward fee = [opengame|
 
     :-----:
 
-    outputs   : chainNewUpdated,  headOfChainIdT1,  attesterHashMapNew  ;
+    outputs   : chainNewUpdated,  headOfChainIdT1,  validatorHashMapNew  ;
     returns   :  ;
   |]
 

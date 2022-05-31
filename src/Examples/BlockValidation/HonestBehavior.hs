@@ -67,7 +67,7 @@ initialChainLinear = path [(1,2),(2,2),(3,2)]
 -- Initial hashMap for last rounds players
 -- assuming they both voted for the same block (3)
 -- NOTE names have to match game definition
-initialMap :: AttesterMap
+initialMap :: ValidatorMap
 initialMap = M.fromList [("a10",3),("a20",3)]
 
 
@@ -79,27 +79,27 @@ initialContextLinear :: Player
                      -> Reward
                      -> Fee
                      -> StochasticStatefulContext
-                          (Chain, Id, AttesterMap)
+                          (Chain, Id, ValidatorMap)
                           ()
-                          (Chain, Id, AttesterMap)
+                          (Chain, Id, ValidatorMap)
                           ()
 initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(initialChainLinear, 3, initialMap))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
 
 -- We need to embed the future reward for the players of that single round
-feedPayoffs :: Player -> Player -> Player -> Reward -> Fee -> (Chain, Id, AttesterMap) -> StateT Vector Stochastic ()
-feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,attesterHashMapNew) = do
+feedPayoffs :: Player -> Player -> Player -> Reward -> Fee -> (Chain, Id, ValidatorMap) -> StateT Vector Stochastic ()
+feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,validatorHashMapNew) = do
   let headOfChainNew    = determineHead newChain
-      attestedCorrectA1 = attestedCorrect a1 attesterHashMapNew newChain headOfChainNew
-      attestedCorrectA2 = attestedCorrect a2 attesterHashMapNew newChain headOfChainNew
-      payoffA1          = attesterPayoff successFee attestedCorrectA1
-      payoffA2          = attesterPayoff successFee attestedCorrectA2
+      attestedCorrectA1 = attestedCorrect a1 validatorHashMapNew newChain headOfChainNew
+      attestedCorrectA2 = attestedCorrect a2 validatorHashMapNew newChain headOfChainNew
+      payoffA1          = validatorPayoff successFee attestedCorrectA1
+      payoffA2          = validatorPayoff successFee attestedCorrectA2
       (blockWasSent,_)  = wasBlockSent newChain headOfChainIdT1
       proposerCorrect   = proposedCorrect blockWasSent newChain
       payoffProposer    = proposerPayoff reward proposerCorrect
   modify (adjustOrAdd (\x -> x + payoffA1) payoffA1 a1)
   modify (adjustOrAdd (\x -> x + payoffA2) payoffA2 a2)
   modify (adjustOrAdd (\x -> x + payoffProposer) payoffProposer p) 
-  -- compute payoff for attester in the one round game
+  -- compute payoff for validator in the one round game
 
 
 -------------------
