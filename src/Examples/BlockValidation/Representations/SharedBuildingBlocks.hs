@@ -23,10 +23,6 @@ import           Algebra.Graph.Relation
 -- Multiplayer version of the protocol
 -- State for each game is a model of a chain
 
--- TODO Put proposers' decisions also in a map; to have access to earlier player ids
--- TODO For how long will the renumeration of validators and proposer continue? Is it just for one period? Periods t?
--- TODO All the components should be here
-
 
 ----------
 -- A Model
@@ -55,7 +51,7 @@ addBlock = [opengame|
 
 
 
--- The validator observes the sent hash, the old hash, the timer, and can then decide which node to attest as the head
+-- Given a new chain proposed and the old chain from (t-1), `validator` then decides which node to attest as the head.
 validator name = [opengame|
 
     inputs    : chainNew,chainOld ;
@@ -67,7 +63,6 @@ validator name = [opengame|
     operation : dependentDecision name (\(chainNew, chainOld) -> [1, vertexCount chainNew]) ;
     outputs   : attestedIndex ;
     returns   : 0 ;
-    // ^ the validator picks a vertex to vote on -- as the head of the chain
     // ^ NOTE the payoff for the validator comes from the next period
 
     :-----:
