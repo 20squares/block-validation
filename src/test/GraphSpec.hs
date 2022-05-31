@@ -53,14 +53,14 @@ findVertex = describe
           anyException
 
 updateVertex = describe
-   "update vertex according to attester's vote" $ do
+   "update vertex according to validator's vote" $ do
       it "correct vertex updated" $ do
         shouldBe
-          (attesterChoiceIndex testChain 4)
+          (validatorChoiceIndex testChain 4)
           (edges [((1,2),(2,2)),((2,2),(3,1)),((3,1),(4,2))])
       it "incorrect vertex updated" $ do
         shouldNotBe
-          (attesterChoiceIndex testChain 2)
+          (validatorChoiceIndex testChain 2)
           (edges [((1,2),(2,2)),((2,2),(3,1)),((3,1),(4,2))])
       it "several vertices are updated" $ do
         shouldBe

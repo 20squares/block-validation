@@ -24,7 +24,7 @@ import           Algebra.Graph.Relation
 -- State for each game is a model of a chain
 
 -- TODO Put proposers' decisions also in a map; to have access to earlier player ids
--- TODO For how long will the renumeration of attesters and proposer continue? Is it just for one period? Periods t?
+-- TODO For how long will the renumeration of validators and proposer continue? Is it just for one period? Periods t?
 -- TODO All the components should be here
 
 
@@ -56,8 +56,8 @@ addBlock = [opengame|
 
 
 
--- The attester observes the sent hash, the old hash, the timer, and can then decide which node to attest as the head
-attester name = [opengame|
+-- The validator observes the sent hash, the old hash, the timer, and can then decide which node to attest as the head
+validator name = [opengame|
 
     inputs    : ticker,chainNew,chainOld ;
     feedback  :  ;
@@ -68,8 +68,8 @@ attester name = [opengame|
     operation : dependentDecision name (\(ticker, chainNew, chainOld) -> [1, vertexCount chainNew]) ;
     outputs   : attestedIndex ;
     returns   : 0 ;
-    // ^ the attester picks a vertex to vote on -- as the head of the chain
-    // ^ NOTE the payoff for the attester comes from the next period
+    // ^ the validator picks a vertex to vote on -- as the head of the chain
+    // ^ NOTE the payoff for the validator comes from the next period
 
     :-----:
 
@@ -118,15 +118,15 @@ proposer  name delayThreshold = [opengame|
   |]
 
 
--- Update the payoff of the attester conditional on the correctness of his action
-updatePayoffAttester name fee  = [opengame|
+-- Update the payoff of the validator conditional on the correctness of his action
+updatePayoffValidator name fee  = [opengame|
     inputs    : bool ;
     feedback  :   ;
 
     :-----:
     inputs    : bool ;
     feedback  :   ;
-    operation : forwardFunction $ attesterPayoff fee ;
+    operation : forwardFunction $ validatorPayoff fee ;
     outputs   : value ;
     returns   : ;
     // ^ Determines the value
