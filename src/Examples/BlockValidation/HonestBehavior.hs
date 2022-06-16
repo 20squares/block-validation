@@ -83,7 +83,10 @@ initialContextLinear :: Player
                           ()
                           (Chain, Id, ValidatorMap)
                           ()
-initialContextLinear p a1 a2 reward successFee = StochasticStatefulContext (pure ((),(initialChainLinear, 3, initialMap))) (\_ x -> feedPayoffs p a1 a2 reward successFee x)
+initialContextLinear p a1 a2 reward successFee =
+  StochasticStatefulContext
+    (pure ((),(initialChainLinear, 3, initialMap)))
+    (\_ x -> feedPayoffs p a1 a2 reward successFee x)
 
 -- We need to embed the future reward for the players of that single round
 feedPayoffs :: Player -> Player -> Player -> Reward -> Fee -> (Chain, Id, ValidatorMap) -> StateT Vector Stochastic ()
@@ -104,6 +107,5 @@ feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,validatorHashMap
 
 -------------------
 -- Scenarios Tested
-{-
-eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode (initialContextLinear "p1" "a11" "a21" 2 2)
--}
+
+analyzeScenario = eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode (initialContextLinear "p1" "a11" "a21" 2 2)

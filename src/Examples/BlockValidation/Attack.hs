@@ -144,11 +144,11 @@ feedPayoffs p a1 a2 reward successFee (newChain,headOfChainIdT1,validatorHashMap
 
 -------------------
 -- Scenarios Tested
-{-
-eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode4 (initialContextLinear "p1" "a11" "a21" 2 2)
 
-eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode5 (initialContextLinear "p1" "a11" "a21" 2 2)
+analyzeScenario4 = eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode4 (initialContextLinear "p1" "a11" "a21" 2 2)
 
-eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisodeRandom (initialContextLinear "p1" "a11" "a21" 2 2)
+analyzeScenario5 = eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisode5 (initialContextLinear "p1" "a11" "a21" 2 2)
 
--}
+analyzeScenarioRandom = eqOneEpisodeGame "p0" "p1" "a10" "a20" "a11" "a21" 2 2 strategyOneEpisodeRandom (initialContextLinear "p1" "a11" "a21" 2 2)
+
+
