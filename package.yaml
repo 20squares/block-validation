@@ -1,10 +1,10 @@
-name: open-games-hs
+name: block-validation
 version: '0.1.0.0'
 synopsis: Protocol analysis 
 category: Math
 author: Philipp Zahn
 maintainer: philipp.m.zahn@gmail.com
-copyright: Jules Hedges, André Videla, Philipp Zahn & other contributors
+copyright: Philipp Zahn
 license: MIT
 extra-source-files:
 - README.md
@@ -13,61 +13,39 @@ extra-source-files:
 library:
   source-dirs: src
   exposed-modules:
-    - Engine.AtomicGames
-    - Engine.BayesianGames
-    - Engine.Diagnostics
-    - Engine.Engine
-    - Engine.OpenGames
-    - Engine.OpticClass
-    - Engine.TLL
-    - Preprocessor.AbstractSyntax
-    - Preprocessor.Compile
-    - Preprocessor.Lambda
-    - Preprocessor.Parser
-    - Preprocessor.THSyntax
-    - Preprocessor.TH
-    - Preprocessor.Types
-    - Preprocessor.Preprocessor
-    - Examples.BlockValidation.Representations.Internal
-    - Examples.BlockValidation.HonestBehavior
-    - Examples.BlockValidation.Representations.TypesFunctions
-    - Graphics
+    - BlockValidation.Representations.Internal
+    - BlockValidation.HonestBehavior
+    - BlockValidation.Representations.TypesFunctions
 
 dependencies:
-    - base >=4.7 && <5
-    - mtl
-    - transformers
-    - probability
-    - ad
-    - poly
-    - profunctors
-    - template-haskell
-    - parsec
-    - hspec
-    - QuickCheck
-    - comonad
-    - haskeline
-    - hashmap
-    - hashable
-    - extra
-    - fgl
-    - graphviz
-    - lens
-    - typed-process
-    - mwc-random
-    - random
-    - vector
-    - monad-bayes
-    - criterion
-    - containers
-    - algebraic-graphs
-    - NumInstances
-    - generic-random
+  - base >= 4.7 && < 5
+  - template-haskell
+  - generic-random
+  - open-games-hs
+  - probability
+  - splitmix
+  - mwc-random
+  - mtl
+  - transformers
+  - poly
+  - profunctors
+  - parsec
+  - comonad
+  - extra
+  - fgl
+  - graphviz
+  - lens
+  - typed-process
+  - criterion
+  - random
+  - algebraic-graphs
+  - NumInstances
+  - containers
 
 
 
 executables:
-  open-games-exe:
+  block-validation-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -75,23 +53,14 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - open-games-hs
-  graphics:
-    main:                Main.hs
-    source-dirs:         graphics
-    dependencies:
-      - open-games-hs
-      - graphviz
-      - template-haskell
-      - path
-      - path-io
+    - block-validation
 
 tests:
-  test-open-games:
+  test-block-validation:
     main: Spec.hs
     source-dirs: src/test
     dependencies:
-      - open-games-hs
+      - block-validation
       - template-haskell
       - base
       - hspec
@@ -102,7 +71,7 @@ tests:
     main: Equilibrium
     source-dirs: test
     dependencies:
-      - open-games-hs
+      - block-validation
       - template-haskell
       - base
       - hspec

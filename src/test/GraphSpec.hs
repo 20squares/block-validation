@@ -3,13 +3,15 @@
 
 module GraphSpec where
 
+
+import           BlockValidation.Representations.TypesFunctions
+
 import           Algebra.Graph.Relation
 import           Control.Exception (evaluate)
 import qualified Data.Map.Strict      as M
 import qualified Data.Set             as S
 import           Test.Hspec
 
-import           Examples.BlockValidation.Representations.TypesFunctions
 
 
 spec :: Spec

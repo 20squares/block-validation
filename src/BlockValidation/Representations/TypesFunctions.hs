@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Examples.BlockValidation.Representations.TypesFunctions where
+module BlockValidation.Representations.TypesFunctions where
 
 import           Engine.Engine
 
