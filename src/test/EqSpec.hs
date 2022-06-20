@@ -6,8 +6,8 @@ module EqSpec where
 import           Test.Hspec
 
 import           Engine.Engine
-import           Examples.BlockValidation.HonestBehavior
-import           Examples.BlockValidation.Representations.Internal
+import           BlockValidation.HonestBehavior
+import           BlockValidation.Representations.Internal
 
 
 spec :: Spec

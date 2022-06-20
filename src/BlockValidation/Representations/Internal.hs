@@ -8,13 +8,13 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Examples.BlockValidation.Representations.Internal where
+module BlockValidation.Representations.Internal where
 
 
 import           Engine.Engine
 import           Preprocessor.Preprocessor
-import           Examples.BlockValidation.Representations.TypesFunctions
-import           Examples.BlockValidation.Representations.SharedBuildingBlocks
+import           BlockValidation.Representations.TypesFunctions
+import           BlockValidation.Representations.SharedBuildingBlocks
 
 
 import           Algebra.Graph.Relation

@@ -5,18 +5,17 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 
-module Examples.BlockValidation.HonestBehavior where
+module BlockValidation.HonestBehavior where
 
+import           Data.Utils
+import           Engine.Engine
+import           BlockValidation.Representations.Internal
+import           BlockValidation.Representations.TypesFunctions
 
 import           Algebra.Graph.Relation
 import           Control.Monad.State                hiding (state)
 import qualified Data.Map.Strict      as M
 import qualified Data.Set             as S
-
-import           Data.Utils
-import           Engine.Engine
-import           Examples.BlockValidation.Representations.Internal
-import           Examples.BlockValidation.Representations.TypesFunctions
 
 ---------------------------------------------------------------
 -- Here we test the behavior of honest agents, i.e. following

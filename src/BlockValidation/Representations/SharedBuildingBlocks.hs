@@ -10,12 +10,12 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Examples.BlockValidation.Representations.SharedBuildingBlocks where
+module BlockValidation.Representations.SharedBuildingBlocks where
 
 
 import           Engine.Engine
 import           Preprocessor.Preprocessor
-import           Examples.BlockValidation.Representations.TypesFunctions
+import           BlockValidation.Representations.TypesFunctions
 
 import           Algebra.Graph.Relation
 
